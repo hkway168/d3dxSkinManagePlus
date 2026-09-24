@@ -25,7 +25,8 @@ def initial():
 
 
 def when_entering_mainpool():
-    core.sync.addtask("检查更新", core.module.update.check)
+    # 已禁用启动自动更新 (仅本地运行)
+    # core.sync.addtask("检查更新", core.module.update.check)
     core.sync.addtask("初始化登录用户列表", core.window.login.initial)
     core.sync.addtask("登录就绪", core.window.ready_login)
 

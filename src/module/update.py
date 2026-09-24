@@ -10,6 +10,9 @@ from constant import L
 
 __event = threading.Event()
 
+# 自动更新开关: 置为 True 可恢复联网检查更新
+AUTO_UPDATE = False
+
 
 def deadlock():
     __event.wait()
@@ -26,6 +29,10 @@ def stop_control(msg: str = "未知错误"):
 
 
 def check():
+    if not AUTO_UPDATE:
+        core.log.info("自动更新已禁用, 跳过检查更新", L.MODULE_UPDATE)
+        return
+
     core.log.info("检查更新...", L.MODULE_UPDATE)
     core.window.block.setcontent("正在检查更新...")
     try:
