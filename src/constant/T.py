@@ -28,6 +28,10 @@ ANNOTATION_LOGIN = """点一下，玩一年，皮肤不花一分钱。
 ANNOTATION_HELP = """点击访问 d3dxSkinManage 的帮助页面
 大多数的问题都能在这里找到解决方案"""
 
+ANNOTATION_LOGOUT = """点击退出当前用户并返回登录界面
+退出前会自动保存索引数据和用户配置
+未完成的下载任务将被中断"""
+
 ANNOTATION_MANAGE_CLASSIFICATION = "\n".join([
     "左键单击 查看对应类别的对象",
     "右键双击 修改所选类别依据",

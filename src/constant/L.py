@@ -17,6 +17,7 @@ MODULE_MODS_INDEX = "mods-index"
 MODULE_MODS_MANAGE = "module.mods-manage"
 MODULE_WGET = "wget"
 MODULE_IMAGE = "image"
+MODULE_USER_MANAGE = "user-manage"
 
 WINDOW_LOGIN = "window.login"
 WINDOS_MODS_MANAGE = "windows.mods-manage"

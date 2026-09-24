@@ -1,5 +1,8 @@
 # -*- coding: utf-8 -*-
 
+# std
+import threading
+
 # libs
 import ttkbootstrap
 # import tkinterdnd2
@@ -43,6 +46,39 @@ style = ttkbootstrap.Style()
 style_theme_names = style.theme_names()
 
 
+def exec_in_main_thread(callobject, *args, **kwds):
+    """
+    在主线程中执行 callobject 并返回其结果。
+
+    Tcl/Tk 只允许在创建解释器的线程中调用，
+    子线程直接创建控件会抛出 RuntimeError: Calling Tcl from different apartment，
+    因此子线程需要将界面操作交由主线程执行并等待其完成。
+    """
+    if threading.current_thread() is threading.main_thread():
+        return callobject(*args, **kwds)
+
+    event = threading.Event()
+    box = {}
+
+    def _call():
+        try:
+            box["result"] = callobject(*args, **kwds)
+
+        except BaseException as e:
+            box["exception"] = e
+
+        finally:
+            event.set()
+
+    mainwindow.after(0, _call)
+    event.wait()
+
+    if "exception" in box:
+        raise box["exception"]
+
+    return box.get("result")
+
+
 def initial():
     core.log.info("初始化主窗口...", L.WINDOW)
 
@@ -72,6 +108,7 @@ def initial():
     _alt_set(login.label_description, T.ANNOTATION_USER_DESCRIPTION, 2)
     _alt_set(login.button_login, T.ANNOTATION_LOGIN, 1)
     _alt_set(status.label_help, T.ANNOTATION_HELP, 1)
+    _alt_set(status.label_logout, T.ANNOTATION_LOGOUT, 1)
     interface.initial()
 
 
@@ -89,3 +126,36 @@ def _login(__name):
     frame_login.pack_forget()
     frame_notebook.pack(side='top', fill='both', expand=True)
     status.set_userName(__name)
+    status.set_logout_visible(True)
+
+
+def _logout():
+    core.log.info("退出用户界面...", L.WINDOW)
+
+    # 清空用户相关的列表内容
+    for callobject in [
+        interface.mods_manage.update_classification_list,
+        interface.mods_manage.update_objects_list,
+        interface.mods_manage.update_choices_list,
+        interface.mods_warehouse.refresh
+    ]:
+        try:
+            callobject()
+
+        except Exception:
+            ...
+
+    try:
+        interface.mods_manage.sbin_update_preview(None)
+
+    except Exception:
+        ...
+
+    frame_notebook.pack_forget()
+    frame_login.pack(side="top", fill="both", expand=True)
+
+    status.set_logout_visible(False)
+    status.set_userName("/")
+    status.set_status("-")
+    login.label_description["text"] = ""
+    login.refresh()

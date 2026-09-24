@@ -44,6 +44,16 @@ class ModsIndex (object):
         self.__call_lock = threading._RLock()
 
 
+    def clear(self):
+        "清除所有索引数据"
+        core.log.debug("清除索引数据...", L.MODULE_MODS_INDEX)
+        with self.__call_lock:
+            self.__original_index = {}
+            self.__table_mods = {}
+            self.__table_from = {}
+            self.__cache_object = {}
+
+
     def __fill_variable(self, _mods: dict, _variable: dict) -> dict[str: dict]:
         for SHA, roitem in _mods.items():
             if "get" not in roitem: continue

@@ -18,13 +18,13 @@ class Status (object):
         self.label_status = ttkbootstrap.Label(self.master, text="-")
         self.progressbar_step = ttkbootstrap.Progressbar(self.master)
 
-        # self.Label_logout = ttkbootstrap.Label(self.master, text="[ 注销 ]", foreground="#00FFFF", cursor="hand2")
-        # self.Label_logout.pack(side="right", padx=10, pady=5 )
-
         self.sizegrip.pack(side="right", fill="y")
 
         self.label_help = ttkbootstrap.Label(self.master, text="[ 帮助 ]", cursor="hand2")
         self.label_help.pack(side="right", padx=10, pady=5 )
+
+        self.label_logout = ttkbootstrap.Label(self.master, text="[ 退出用户 ]", cursor="hand2")
+        self.label_logout.pack(side="right", padx=10, pady=5 )
 
         self.label_username.pack(side="left", padx=5, pady=5)
         self.label_mark.pack(side="left", padx=5, pady=5)
@@ -32,10 +32,36 @@ class Status (object):
         self.progressbar_step.pack(side="left", padx=5, pady=5)
 
         self.label_help.bind("<Button-1>", self.bin_open_help)
+        self.label_logout.bind("<Button-1>", self.bin_logout)
+
+        self.set_logout_visible(False)
+
+
+    def set_logout_visible(self, visible: bool) -> None:
+        "控制退出用户入口的显示"
+        if visible:
+            self.label_logout.pack(side="right", padx=10, pady=5, before=self.label_help)
+
+        else:
+            self.label_logout.pack_forget()
 
 
     def bin_open_help(self, *args):
         webbrowser.open(core.env.Link.help)
+
+
+    def bin_logout(self, *args):
+        answer = core.window.messagebox.askyesno(
+            title = "退出用户",
+            message = "是否退出当前用户并返回登录界面\n未完成的下载任务将被中断")
+
+        if not answer: return None
+
+        try:
+            core.logout()
+
+        except Exception as e:
+            core.window.messagebox.showerror(title="操作异常", message=f"{e}")
 
 
     def set_userName(self, userName):

@@ -271,10 +271,32 @@ class AddMods(object):
 
 
 
+def add_mod_is_file(filepath: str, filename: str = None):
+    # AddMods 会创建窗口控件，必须在主线程中执行
+    return core.window.exec_in_main_thread(AddMods, filepath, filename)
+
+
 def add_mod_is_dir(dirpath: str):
     basename = os.path.basename(dirpath)
     tempfilename = hex(int(time.time() * 10 ** 8)) + '.7z'
     tempfilepath = os.path.join(core.env.directory.resources.cache, tempfilename)
+
+    if not os.path.isfile(core.env.file.local.t7z):
+        core.window.messagebox.showerror(title='组件缺失', message=f'找不到 7zip 组件\n{core.env.file.local.t7z}')
+        return
+
     core.external.a7z(os.path.join(dirpath, '*'), tempfilepath)
-    AddMods(tempfilepath, basename)
-    os.remove(tempfilepath)
+
+    if not os.path.isfile(tempfilepath):
+        core.window.messagebox.showerror(title='压缩失败', message='无法将该文件夹压缩为 Mod 文件\n请确认文件夹不为空且有写入缓存目录的权限')
+        return
+
+    try:
+        add_mod_is_file(tempfilepath, basename)
+
+    finally:
+        try:
+            os.remove(tempfilepath)
+
+        except Exception:
+            ...

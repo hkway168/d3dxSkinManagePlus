@@ -136,16 +136,16 @@ class D3dxManage(object):
         core.log.info("更新 d3dx 环境设置信息...")
 
         self.combobox_theme.config(values=core.window.style_theme_names)
-        self.combobox_theme.insert(0, core.env.configuration.style_theme)
+        self.combobox_theme.set(core.env.configuration.style_theme)
 
         for key, value in LOG_LEVEL.items():
             if core.env.configuration.log_level == value:
-                self.combobox_log_level.insert(0, key)
+                self.combobox_log_level.set(key)
                 break
 
         for key, value in ANNOTATION_LEVEL.items():
             if core.env.configuration.annotation_level == value:
-                self.combobox_annotation_level.insert(0, key)
+                self.combobox_annotation_level.set(key)
                 break
 
         _GamePath = core.userenv.configuration.GamePath
@@ -156,6 +156,8 @@ class D3dxManage(object):
             dirlist = os.listdir(d3dxs)
             lst = [x for x in dirlist if os.path.isfile(os.path.join(d3dxs, x))]
             self.combobox_versions.config(values=lst)
+
+        self.combobox_versions.set("")
 
         try:
             with open(os.path.join(core.userenv.directory.work, f"d3dx_version_name_from_{core.env.CODE_NAME}"), "r", encoding="utf-8") as fileobject:

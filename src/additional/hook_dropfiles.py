@@ -18,7 +18,7 @@ code2 = 'utf-8'
 
 rule_single = [
     (['.png', '.jpg'], add_preview.add_preview, False),
-    (['.zip', '.rar', '.7z'], add_mod.AddMods, True)
+    (['.zip', '.rar', '.7z'], add_mod.add_mod_is_file, True)
 ]
 
 

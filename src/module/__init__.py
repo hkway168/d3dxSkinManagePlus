@@ -6,6 +6,7 @@ from . import synchronization
 from . import wget
 from . import update
 from . import extension
+from . import user_manage
 
 from .index_manage import IndexManage
 from .mods_index import ModsIndex
@@ -24,6 +25,7 @@ __all__ = [
     "wget",
     "update",
     "extension",
+    "user_manage",
     "index_manage",
     "mods_index",
     "mods_manage",

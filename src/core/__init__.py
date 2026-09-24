@@ -72,8 +72,35 @@ def login(name):
 
 
 def logout():
-    log.info(f"注销登录", L.CORE_LOGOUT)
-    ...
+    if userenv.user_name is Ellipsis:
+        log.warn("没有已登录的用户", L.CORE_LOGOUT)
+        return
+
+    log.info(f"注销登录 \"{userenv.user_name}\"", L.CORE_LOGOUT)
+
+    # 保存当前用户数据
+    save_task_list = [
+        (module.index_manage.save_all_index_file, ()),
+        (userenv.configuration._con_asve_as_json, (userenv.file.configuration, ))
+    ]
+
+    for task in save_task_list:
+        try:
+            task[0](*task[1])
+
+        except Exception as e:
+            log.error(f"保存用户数据失败 {e.__class__}: {e}", L.CORE_LOGOUT)
+
+    # 清除用户相关的缓存数据
+    for callobject in [module.mods_manage.clear, module.mods_index.clear]:
+        try:
+            callobject()
+
+        except Exception as e:
+            log.error(f"清除缓存数据失败 {e.__class__}: {e}", L.CORE_LOGOUT)
+
+    userenv.logout()
+    window._logout()
 
     construct.event.set_event(E.USER_LOGGED_OUT)
 
