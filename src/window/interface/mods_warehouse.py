@@ -9,32 +9,41 @@ import core
 
 from constant import *
 
+from .. import dpi
+
 
 class ModsWarehouse(object):
     def install(self, master, *args, **kwds):
         self.master = master
-        titles = (("#0", "object / name", 360), ("enabled", "tags", 480))
+        S = dpi.scale
+        titles = (("#0", "object / name", S(360)), ("enabled", "tags", S(480)))
 
         self.value_entry_search = ttkbootstrap.StringVar()
 
-        self.Frame_list = ttkbootstrap.Frame(self.master)
+        self.Frame_body = ttkbootstrap.Frame(self.master)
+        self.Frame_body.pack(side="top", fill="both", expand=True, padx=S(10), pady=S(10))
+
+        self.Frame_list = ttkbootstrap.Frame(self.Frame_body, width=S(860))
+        self.Frame_right = ttkbootstrap.Frame(self.Frame_body)
+        self.Frame_list.pack_propagate(False)
         self.Frame_list.pack(side="left", fill="y")
+        self.Frame_right.pack(side="left", fill="both", expand=True)
 
         self.Entry_search = ttkbootstrap.Entry(self.Frame_list, textvariable=self.value_entry_search)
         self.Treeview_items = ttkbootstrap.Treeview(self.Frame_list, show="tree headings", selectmode="extended", columns=("enabled",))
         self.Scrollbar_items = ttkbootstrap.Scrollbar(self.Frame_list, command=self.Treeview_items.yview)
-        self.Frame_Button = ttkbootstrap.Frame(self.master)
+        self.Frame_Button = ttkbootstrap.Frame(self.Frame_right)
         self.Button_download = ttkbootstrap.Button(self.Frame_Button, text="添加到下载列表", width=10, bootstyle="outline", command=self.bin_download)
         self.Button_open_url = ttkbootstrap.Button(self.Frame_Button, text="在浏览器上查看", width=10, bootstyle="outline", command=self.bin_open_url)
-        self.Label_preview = ttkbootstrap.Label(self.master, anchor="center", text="无预览图")
+        self.Label_preview = ttkbootstrap.Label(self.Frame_right, anchor="center", text="无预览图")
 
-        self.Entry_search.pack(side="bottom", fill="x", padx=10, pady=10)
-        self.Scrollbar_items.pack(side="right", fill="y", padx=(0, 10), pady=(10, 0))
-        self.Treeview_items.pack(side="left", fill="y", padx=(10, 5), pady=(10, 0))
-        self.Frame_Button.pack(side="bottom", fill="x", padx=(0, 10), pady=10)
+        self.Entry_search.pack(side="bottom", fill="x", padx=(0, S(5)), pady=(S(10), 0))
+        self.Scrollbar_items.pack(side="right", fill="y", padx=(S(2), S(5)))
+        self.Treeview_items.pack(side="left", fill="both", expand=True)
+        self.Frame_Button.pack(side="bottom", fill="x", padx=(S(5), 0), pady=(S(10), 0))
         self.Button_download.pack(side="left", fill="x", expand=1, padx=0, pady=0)
-        self.Button_open_url.pack(side="right", fill="x", expand=1, padx=(10, 0), pady=0)
-        self.Label_preview.pack(side="top", fill="both", padx=(0, 10), pady=(10, 0), expand=1)
+        self.Button_open_url.pack(side="right", fill="x", expand=1, padx=(S(10), 0), pady=0)
+        self.Label_preview.pack(side="top", fill="both", padx=(S(5), 0), expand=1)
 
 
         self.Treeview_items.config()
@@ -46,7 +55,7 @@ class ModsWarehouse(object):
         self.value_entry_search.trace("w", self.refresh)
         # self.Entry_search.bind("<Key>", self.bin_refresh)
         for tree, text, width in titles:
-            self.Treeview_items.column(tree, width=width, anchor="w")
+            self.Treeview_items.column(tree, width=width, minwidth=S(60), stretch=True, anchor="w")
             self.Treeview_items.heading(tree, text=text)
 
 

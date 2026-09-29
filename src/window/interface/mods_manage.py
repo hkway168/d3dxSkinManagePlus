@@ -5,56 +5,74 @@ import ttkbootstrap
 import core
 from constant import *
 
+from .. import dpi
+
 CMD_UNLOAD = "--X--"
 
 
 class ModsManage(object):
     def install(self, *args, **kwds):
-        titles = (("#0", "对象", 200), ("enabled", "启用 Mod", 240))
+        S = dpi.scale
+        titles = (("#0", "对象", S(125)), ("enabled", "启用 Mod", S(135)))
 
-        self.FC_WIDTH = 200
+        self.FC_WIDTH = S(200)
+        self._preview_resize_job = None
 
         self.value_entry_search = ttkbootstrap.StringVar()
-        self.frame_choice = ttkbootstrap.Frame(self.master)
 
-        self.treeview_classification = ttkbootstrap.Treeview(self.master, show="tree headings", selectmode="extended")
-        self.treeview_objects = ttkbootstrap.Treeview(self.master, show="tree headings", selectmode="extended", columns=("enabled",))
+        # 各管理区域使用固定宽度 (按 DPI 换算), 剩余空间全部留给预览区
+        self.frame_body = ttkbootstrap.Frame(self.master)
+        self.frame_body.pack(side="top", fill="both", expand=True, padx=S(10), pady=S(10))
+
+        self.frame_classification = ttkbootstrap.Frame(self.frame_body, width=S(220))
+        self.frame_objects = ttkbootstrap.Frame(self.frame_body, width=S(280))
+        self.frame_choice = ttkbootstrap.Frame(self.frame_body, width=S(340))
+        self.frame_preview = ttkbootstrap.Frame(self.frame_body)
+
+        for frame in (self.frame_classification, self.frame_objects, self.frame_choice):
+            frame.pack_propagate(False)
+            frame.pack(side="left", fill="y")
+
+        self.frame_preview.pack(side="left", fill="both", expand=True)
+
+        self.treeview_classification = ttkbootstrap.Treeview(self.frame_classification, show="tree headings", selectmode="extended")
+        self.treeview_objects = ttkbootstrap.Treeview(self.frame_objects, show="tree headings", selectmode="extended", columns=("enabled",))
         self.treeview_choices = ttkbootstrap.Treeview(self.frame_choice, selectmode="extended", show="tree headings")
 
-        self.scrollbar_classification = ttkbootstrap.Scrollbar(self.master, command=self.treeview_classification.yview)
-        self.scrollbar_objects = ttkbootstrap.Scrollbar(self.master, command=self.treeview_objects.yview)
+        self.scrollbar_classification = ttkbootstrap.Scrollbar(self.frame_classification, command=self.treeview_classification.yview)
+        self.scrollbar_objects = ttkbootstrap.Scrollbar(self.frame_objects, command=self.treeview_objects.yview)
         self.scrollbar_choices = ttkbootstrap.Scrollbar(self.frame_choice, command=self.treeview_choices.yview)
 
         self.entry_search = ttkbootstrap.Entry(self.frame_choice, textvariable=self.value_entry_search)
 
         # self.label_explain = ttkbootstrap.Label(self.master, anchor="center", text="无附加描述")
-        self.label_SHA = ttkbootstrap.Label(self.master, anchor="center", text="SHA")
-        self.label_preview = ttkbootstrap.Label(self.master, anchor="center", text="无预览图", cursor="plus")
+        self.label_SHA = ttkbootstrap.Label(self.frame_preview, anchor="center", text="SHA")
+        self.label_preview = ttkbootstrap.Label(self.frame_preview, anchor="center", text="无预览图", cursor="plus")
 
         self.treeview_classification.config(yscrollcommand=self.scrollbar_classification.set)
         self.treeview_objects.config(yscrollcommand=self.scrollbar_objects.set)
         self.treeview_choices.config(yscrollcommand=self.scrollbar_choices.set)
 
-        self.treeview_classification.column("#0", width=200, anchor="w")
-        self.treeview_choices.column("#0", width=300, anchor="w")
+        self.treeview_classification.column("#0", width=S(200), minwidth=S(60), stretch=True, anchor="w")
+        self.treeview_choices.column("#0", width=S(300), minwidth=S(60), stretch=True, anchor="w")
         self.treeview_classification.heading("#0", text="分类")
         self.treeview_choices.heading("#0", text="选择")
 
         for tree, text, width in titles:
-            self.treeview_objects.column(tree, width=width, anchor="w")
+            self.treeview_objects.column(tree, width=width, minwidth=S(60), stretch=True, anchor="w")
             self.treeview_objects.heading(tree, text=text)
 
 
-        self.treeview_classification.pack(side="left", fill="y", padx=(10, 0), pady=10)
-        self.scrollbar_classification.pack(side="left", fill="y", padx=(2, 5), pady=10)
-        self.treeview_objects.pack(side="left", fill="y", padx=(0, 0), pady=10)
-        self.scrollbar_objects.pack(side="left", fill="y", padx=(2, 5), pady=10)
-        self.frame_choice.pack(side="left", fill="y")
-        self.entry_search.pack(side="bottom", fill="x", padx=(0, 10), pady=(5, 10))
-        self.treeview_choices.pack(side="left", fill="y", padx=(0, 0), pady=(10, 0))
-        self.scrollbar_choices.pack(side="left", fill="y", padx=(2, 10), pady=(10, 0))
-        self.label_SHA.pack(side="bottom", fill="x", padx=(0, 10), pady=(10, 5))
-        self.label_preview.pack(side="top", fill="both", padx=(0, 10), pady=(10, 0), expand=1)
+        self.scrollbar_classification.pack(side="right", fill="y", padx=(S(2), S(5)))
+        self.treeview_classification.pack(side="left", fill="both", expand=True)
+        self.scrollbar_objects.pack(side="right", fill="y", padx=(S(2), S(5)))
+        self.treeview_objects.pack(side="left", fill="both", expand=True)
+        self.entry_search.pack(side="bottom", fill="x", padx=(0, S(5)), pady=(S(5), 0))
+        self.scrollbar_choices.pack(side="right", fill="y", padx=(S(2), S(5)))
+        self.treeview_choices.pack(side="left", fill="both", expand=True)
+        self.label_SHA.pack(side="bottom", fill="x", padx=(S(5), 0), pady=(S(10), S(5)))
+        self.label_preview.pack(side="top", fill="both", padx=(S(5), 0), expand=1)
+        self.label_preview.bind("<Configure>", self.bin_preview_configure)
         # self.label_explain.pack(side="bottom", fill="x", padx=(0, 10), pady=(5, 10))
         # self.Button_refresh.pack(side="top", fill="x", padx=(0, 10), pady=(0, 10))
 
@@ -139,6 +157,24 @@ class ModsManage(object):
         # if isinstance(item, dict): text = item.get("explain", "")
         # else: text = "无附加描述"
         # self.label_explain.config(text=text if text else "无附加描述")
+
+
+    def bin_preview_configure(self, *_):
+        """预览区域尺寸变化 (拖动分隔条 / 缩放窗口) 后按新尺寸重新生成预览图"""
+        if self._preview_resize_job is not None:
+            try: self.label_preview.after_cancel(self._preview_resize_job)
+            except Exception: ...
+
+        self._preview_resize_job = self.label_preview.after(150, self._refresh_preview_size)
+
+
+    def _refresh_preview_size(self):
+        self._preview_resize_job = None
+        SHA = str(self.label_SHA["text"])
+        if not SHA or SHA == "SHA": return
+
+        try: self.sbin_update_preview(SHA)
+        except Exception: ...
 
 
     def bin_treeview_choices_motion(self, event):

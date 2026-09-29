@@ -9,6 +9,7 @@ import module
 import window
 
 from .create_user_toplevel import CreateUserToplevel
+from . import dpi
 
 from constant import L
 
@@ -23,7 +24,7 @@ class Login(object):
         self.frame_left.pack(side="left", fill="y", padx=20, pady=20)
 
         self.treeview_users = ttkbootstrap.Treeview(self.frame_left, selectmode="extended", show="tree")
-        self.treeview_users.column("#0", width=300, anchor="w")
+        self.treeview_users.column("#0", width=dpi.scale(300), anchor="w")
         self.treeview_users.pack(side="top", fill="both", expand=True)
 
         self.button_create_user = ttkbootstrap.Button(
@@ -51,7 +52,7 @@ class Login(object):
 
 
     def update_image_group(self):
-        self.user_image = module.image.ImageTkThumbnailGroup(40, 40)
+        self.user_image = module.image.ImageTkThumbnailGroup(dpi.thumbnail_size(), dpi.thumbnail_size())
         for name in self.userList:
             for suffix in [".png", ".jpg"]:
                 path = os.path.join(core.env.base.home, name, f"picture{suffix}")

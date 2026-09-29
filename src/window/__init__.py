@@ -15,6 +15,7 @@ from .login import Login
 from .block import Block
 from .interface import Interface
 from .annotation_toplevel import AnnotationToplevel
+from . import dpi
 
 from constant import *
 
@@ -24,10 +25,11 @@ import core
 mainwindow = ttkbootstrap.Window()
 # mainwindow = tkinterdnd2.TkinterDnD.Tk()
 # mainwindow.overrideredirect(True)
+dpi.initial(mainwindow)
 messagebox = Messagebox(mainwindow)
 annotation_toplevel = AnnotationToplevel()
 
-treeview_thumbnail = core.module.image.ImageTkThumbnailGroup(40, 40)
+treeview_thumbnail = core.module.image.ImageTkThumbnailGroup(dpi.thumbnail_size(), dpi.thumbnail_size())
 
 frame_title = ttkbootstrap.Frame(mainwindow)
 frame_status = ttkbootstrap.Frame(mainwindow)
@@ -83,15 +85,17 @@ def initial():
     core.log.info("初始化主窗口...", L.WINDOW)
 
     style.theme_use(core.env.configuration.style_theme)
-    style.configure("Treeview", rowheight=48)
+    dpi.apply_style(style)
 
     mainwindow.title(core.env.MAIN_TITLE)
     _sw = mainwindow.winfo_screenwidth()
     _sh = mainwindow.winfo_screenheight()
-    _w, _h = 1280, 800
-    _w, _h = 1440, 900
-    mainwindow.geometry(f"{_w}x{_h}+{(_sw - _w) // 2}+{(_sh - _h) // 2 - 40}")
-    mainwindow.minsize(960, 600)
+    _w = min(dpi.scale(1440), _sw - dpi.scale(40))
+    _h = min(dpi.scale(900), _sh - dpi.scale(80))
+    _x = max(0, (_sw - _w) // 2)
+    _y = max(0, (_sh - _h) // 2 - dpi.scale(40))
+    mainwindow.geometry(f"{_w}x{_h}+{_x}+{_y}")
+    mainwindow.minsize(min(dpi.scale(1280), _w), min(dpi.scale(600), _h))
 
     try:
         mainwindow.iconbitmap(default=core.env.file.local.iconbitmap)
