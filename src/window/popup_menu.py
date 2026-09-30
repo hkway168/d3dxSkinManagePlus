@@ -28,6 +28,9 @@ class PopupMenu (object):
     def add_command(self, label: str, command=None, enabled: bool = True):
         self.__items.append((label, command, enabled))
 
+    def add_separator(self):
+        self.__items.append((None, None, False))
+
     # -------------------------------------------------- 构建
     def __colors(self):
         try:
@@ -64,6 +67,10 @@ class PopupMenu (object):
         self.__rows.append(inner)
 
         for label, command, enabled in self.__items:
+            if label is None:
+                tkinter.Frame(inner, bg=dfg, height=1).pack(fill="x", padx=S(8), pady=S(3))
+                continue
+
             row = tkinter.Label(
                 inner, text=label, anchor="w", bg=bg, fg=fg if enabled else dfg,
                 font="TkDefaultFont", padx=S(16), pady=S(5), cursor="hand2" if enabled else "arrow",

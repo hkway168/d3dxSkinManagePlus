@@ -14,6 +14,8 @@ from constant import *
 from window import dpi
 from window.popup_menu import PopupMenu
 
+from . import unload_mods
+
 
 illegalchat = ['/', '\\', ':', '*', '?', '"', '<', '>', '|']
 
@@ -538,12 +540,27 @@ class _ContextMenu (object):
         try: core.window.annotation_toplevel.withdraw()
         except Exception: ...
 
+        iid = self.treeview.identify_row(event.y)
+
         self.menu.clear()
-        self.build(self.treeview.identify_row(event.y))
+        self.build(iid)
+        self.apply_extension(iid or "")
         self.menu.popup(event.x_root, event.y_root)
 
     def build(self, iid: str):
         raise NotImplementedError
+
+    def apply_extension(self, iid: str):
+        """插件兼容: 追加通过 treeview_*_menu.add_label 注册的菜单项"""
+        ...
+
+
+def _extension_of(name: str, value_name: str, iid: str, menu):
+    interface = core.window.interface.mods_manage
+    setattr(interface, value_name, iid)
+    extension = getattr(interface, name, None)
+    if extension is not None:
+        extension.apply(menu, iid, separator=True)
 
 
 class ClassificationContextMenu (_ContextMenu):
@@ -553,6 +570,10 @@ class ClassificationContextMenu (_ContextMenu):
         preset = iid if iid and iid != UNCLASSIFIED else None
         self.menu.add_command(label='添加分类', command=add_classification)
         self.menu.add_command(label='管理分类', command=lambda: manage_classification(preset))
+        unload_mods.add_to_menu(self.menu, iid or None)
+
+    def apply_extension(self, iid):
+        _extension_of("treeview_classification_menu", "value_classification_item", iid, self.menu)
 
 
 class ObjectContextMenu (_ContextMenu):
@@ -564,6 +585,10 @@ class ObjectContextMenu (_ContextMenu):
 
         self.menu.add_command(label='添加对象', command=lambda: add_object(classname), enabled=enabled)
         self.menu.add_command(label='管理子对象', command=lambda: manage_objects(classname, iid or None), enabled=enabled)
+        unload_mods.add_to_menu(self.menu, classname)
+
+    def apply_extension(self, iid):
+        _extension_of("treeview_objects_menu", "value_object_item", iid, self.menu)
 
 
 def _start(target, *args):

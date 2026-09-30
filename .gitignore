@@ -4,6 +4,7 @@ __pycache__
 /home
 /local
 /resources
+/plugins
 /logs
 /temp
 /src/temp

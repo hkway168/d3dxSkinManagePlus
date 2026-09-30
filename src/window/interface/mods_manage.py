@@ -6,6 +6,7 @@ import core
 from constant import *
 
 from .. import dpi
+from ..menu_extension import MenuExtension
 
 CMD_UNLOAD = "--X--"
 
@@ -121,6 +122,14 @@ class ModsManage(object):
     def __init__(self, master):
         self.master = master
         self.install(master)
+
+        # 插件兼容: 与原版同名的右键菜单扩展点及右键命中条目
+        self.treeview_classification_menu = MenuExtension()
+        self.treeview_objects_menu = MenuExtension()
+        self.treeview_choices_menu = MenuExtension()
+        self.value_classification_item = ""
+        self.value_object_item = ""
+        self.value_choice_item = ""
 
 
     def sbin_clear_treeview_classification(self):

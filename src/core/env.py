@@ -28,6 +28,7 @@ class __base (Directory):
     home = "home"
     resources = "resources"
     local = "local"
+    plugins = "plugins"
 
 base = __base()
 
@@ -40,6 +41,7 @@ class directory (Directory):
         preview = __(base.resources, "preview")
         thumbnail = __(base.resources, "thumbnail")
         cache = __(base.resources, "cache")
+        backup = __(base.resources, "backup")
 
 
     class __local (Directory):

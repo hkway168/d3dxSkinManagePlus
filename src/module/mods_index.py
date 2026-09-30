@@ -278,6 +278,44 @@ class ModsIndex (object):
             core.construct.event.set_event(E.MODS_INDEX_UPDATE)
 
 
+    def item_data_rekey(self, old_SHA: str, new_SHA: str, data: dict | None = None) -> bool:
+        """将 item 的 SHA 由 old_SHA 替换为 new_SHA
+
+        保持所属 index 文件与条目顺序不变, data 不为 None 时同时更新数据
+        若 old_SHA 不存在或 new_SHA 已存在则返回 False
+        """
+        core.log.warn(f"替换 index 数据 SHA - {old_SHA} -> {new_SHA}", L.MODULE_MODS_INDEX)
+        with self.__call_lock:
+            if old_SHA not in self.__table_mods: return False
+            if new_SHA in self.__table_mods: return False
+
+            from_ = self.get_sha_from(old_SHA)
+            if from_ is None or from_ not in self.__original_index: return False
+
+            item = copy.deepcopy(self.__table_mods[old_SHA])
+            if data: item.update(data)
+
+            # 更新原始数据 (保持条目顺序)
+            original_mods = self.__original_index[from_][K.INDEX.MODS]
+            self.__original_index[from_][K.INDEX.MODS] = {
+                (new_SHA if key == old_SHA else key): (item if key == old_SHA else value)
+                for key, value in original_mods.items()
+            }
+
+            # 更新缓存数据
+            del self.__table_mods[old_SHA]
+            self.__table_mods[new_SHA] = item
+            for key, value in self.__table_from.items():
+                if old_SHA in value: value[value.index(old_SHA)] = new_SHA
+            self.cache_update()
+
+            # 保存 index 文件
+            self.save_index_file(from_)
+
+        core.construct.event.set_event(E.MODS_INDEX_UPDATE)
+        return True
+
+
     def item_data_del(self, SHA: str):
         """删除 item 的数据
 

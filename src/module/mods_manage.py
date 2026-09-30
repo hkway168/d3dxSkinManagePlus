@@ -334,6 +334,21 @@ class ModsManage (object):
         return False
 
 
+    # ---------------------------------------------- 插件兼容 (原版 1.5.19+ 同名接口)
+    def is_load_sha(self, sha: str) -> bool:
+        """是否为已加载 SHA (同 is_loaded_sha)"""
+        return self.is_loaded_sha(sha)
+
+
+    def is_have_cache_load(self, sha: str) -> bool:
+        """是否拥有已卸载的缓存 (工作目录中存在 DISABLED-SHA 文件夹)"""
+        try:
+            return os.path.isdir(os.path.join(core.userenv.directory.work_mods, f"{K.DISABLED}-{sha}"))
+
+        except Exception:
+            return False
+
+
     def refresh(self):
         core.log.info("刷新 Mods 管理索引缓存...", L.MODULE_MODS_MANAGE)
         self.clear()
@@ -419,6 +434,45 @@ class ModsManage (object):
         # 卸载只是重命名目录, 解压缓存依然保留
         if _notify: core.construct.event.set_event(E.MOD_UNLOADED)
         return None
+
+
+    def get_loaded_objects(self, class_: str | None = None) -> list[str]:
+        """返回已加载 Mod 的对象列表; 指定 class_ 时仅返回该分类下的对象
+
+        对象所属分类以分类参照为准, 不在任何分类参照中的对象视为 "未分类"
+        """
+        with self.__call_lock:
+            objects = list(self.__table_loads)
+            if class_ is None: return objects
+            return [x for x in objects if (self.get_object_class(x) or UNCLASSIFIED) == class_]
+
+
+    def unload_objects(self, objects: list[str]) -> int:
+        """批量卸载指定对象的 Mod, 只发出一次 MOD_UNLOADED 事件, 返回实际卸载的数量"""
+        count = 0
+        with self.__call_lock:
+            for object_ in list(objects):
+                if object_ not in self.__table_loads: continue
+                try:
+                    self.unload(object_, _notify=False)
+                    count += 1
+
+                except Exception as e:
+                    core.log.error(f"卸载 \"{object_}\" 失败 {e.__class__} {e}", L.MODULE_MODS_MANAGE)
+
+        core.log.info(f"批量卸载 Mod {count} 个", L.MODULE_MODS_MANAGE)
+        if count: core.construct.event.set_event(E.MOD_UNLOADED)
+        return count
+
+
+    def unload_class(self, class_: str) -> int:
+        """卸载分类下全部已加载的 Mod"""
+        return self.unload_objects(self.get_loaded_objects(class_))
+
+
+    def unload_all(self) -> int:
+        """卸载全部已加载的 Mod (所有分类)"""
+        return self.unload_objects(self.get_loaded_objects())
 
 
     def remove(self, SHA: str) -> None:

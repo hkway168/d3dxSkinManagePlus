@@ -16,6 +16,21 @@ from constant import *
 
 
 
+def compute_sha1(content: bytes) -> str:
+    """计算 Mod 原始文件内容的 SHA (大写十六进制)"""
+    return hashlib.sha1(content).hexdigest().upper()
+
+
+def compute_file_sha1(filepath: str) -> str:
+    """分块计算文件的 SHA (大写十六进制), 结果与 compute_sha1 一致"""
+    sha1 = hashlib.sha1()
+    with open(filepath, 'rb') as fileobject:
+        for chunk in iter(lambda: fileobject.read(1024 * 1024), b''):
+            sha1.update(chunk)
+    return sha1.hexdigest().upper()
+
+
+
 class AddModInputCache(object):
     object_ = ''
     grading = ''
@@ -34,9 +49,7 @@ class AddMods(object):
 
         with open(self.filepath, 'rb') as fileobject:
             self.content = fileobject.read()
-            sha1 = hashlib.sha1()
-            sha1.update(self.content)
-            self.SHA = sha1.hexdigest().upper()
+            self.SHA = compute_sha1(self.content)
 
         if not self.content:
             core.window.messagebox.showerror(title='文件无效', message='该文件的内容为空\n无法作为 Mod 导入')
@@ -101,6 +114,7 @@ class AddMods(object):
         self.Frame_tags = ttkbootstrap.Frame(self.windows)
         self.Entry_tags = ttkbootstrap.Entry(self.Frame_tags, width=width)
         self.Label_tags = ttkbootstrap.Label(self.Frame_tags, text='类型标签：')
+        self.Button_tags = ttkbootstrap.Button(self.Frame_tags, text='+', bootstyle="success-outline", command=self.set_tags)
 
         self.Button_ok = ttkbootstrap.Button(self.windows, text='确定', width=10, command=self.bin_ok)
 
@@ -131,6 +145,7 @@ class AddMods(object):
         self.Frame_tags.pack(side='top', fill='x', padx=10, pady=(0, 10))
         self.Label_tags.pack(side='left', padx=(0, 5))
         self.Entry_tags.pack(side='left', fill='x', expand=1)
+        self.Button_tags.pack(side='left', padx=(5, 0))
 
         self.Button_ok.pack(side='right', padx=10, pady=(0, 10))
 
@@ -188,6 +203,10 @@ class AddMods(object):
         self.Entry_author.insert(0, AddModInputCache.author)
         self.Entry_explain.insert(0, AddModInputCache.explain)
         self.Entry_tags.insert(0, AddModInputCache.tags)
+
+
+    def set_tags(self, *_):
+        core.additional.modify_item_data.select_tags_for_entry(self.Entry_tags, self.windows)
 
 
     def bin_ok(self, *args, **kwds):
