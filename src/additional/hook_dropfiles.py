@@ -17,7 +17,7 @@ code2 = 'utf-8'
 
 
 rule_single = [
-    (['.png', '.jpg'], add_preview.add_preview, False),
+    (add_preview.IMAGE_SUFFIXES, add_preview.add_preview, False),
     (['.zip', '.rar', '.7z'], add_mod.add_mod_is_file, True)
 ]
 
@@ -66,9 +66,7 @@ def __exec_call(func_, async_: bool, arg_: object):
 
 def bin_dropfiles_single(content):
     if os.path.isfile(content):
-        basename = os.path.basename(content)
-
-        suffix = basename[basename.rfind('.'):]
+        suffix = os.path.splitext(content)[1].lower()
 
         for rule in rule_single:
             accept_, func_, async_ = rule

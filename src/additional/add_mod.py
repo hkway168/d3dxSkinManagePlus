@@ -8,7 +8,6 @@ import hashlib
 
 # install
 import win32gui
-import webbrowser
 import ttkbootstrap
 
 # project
@@ -98,16 +97,7 @@ class AddMods(object):
         self.Entry_tags = ttkbootstrap.Entry(self.Frame_tags, width=width)
         self.Label_tags = ttkbootstrap.Label(self.Frame_tags, text='类型标签：')
 
-        self.Frame_url = ttkbootstrap.Frame(self.windows)
-        self.Entry_url = ttkbootstrap.Entry(self.Frame_url, width=width)
-        self.Label_url = ttkbootstrap.Label(self.Frame_url, text='下载地址：')
-
-        self.Frame_mode = ttkbootstrap.Frame(self.windows)
-        self.Combobox_mode = ttkbootstrap.Combobox(self.Frame_mode, values=['get', 'lanzou'])
-        self.Label_mode = ttkbootstrap.Label(self.Frame_mode, text='下载模式：')
-
         self.Button_ok = ttkbootstrap.Button(self.windows, text='确定', width=10, command=self.bin_ok)
-        self.Button_help = ttkbootstrap.Button(self.windows, text='帮助', width=10, command=self.bin_open_help)
 
         self.Label_except = ttkbootstrap.Label(self.windows, anchor='w', text='', foreground='red')
 
@@ -137,16 +127,7 @@ class AddMods(object):
         self.Label_tags.pack(side='left', padx=(0, 5))
         self.Entry_tags.pack(side='left', fill='x', expand=1)
 
-        # self.Frame_url.pack(side='top', fill='x', padx=10, pady=(0, 10))
-        # self.Label_url.pack(side='left', padx=(0, 5))
-        # self.Entry_url.pack(side='left', fill='x', expand=1)
-
-        # self.Frame_mode.pack(side='top', fill='x', padx=10, pady=(0, 10))
-        # self.Label_mode.pack(side='left', padx=(0, 5))
-        # self.Combobox_mode.pack(side='left', fill='x', expand=1)
-
         self.Button_ok.pack(side='right', padx=10, pady=(0, 10))
-        self.Button_help.pack(side='right', padx=(10, 0), pady=(0, 10))
 
         self.Label_except.pack(side='right', fill='x', expand=True, padx=(10, 0), pady=(0, 10))
 
@@ -159,7 +140,6 @@ class AddMods(object):
         _alt_set(self.Entry_explain, T.ANNOTATION_EXPLAIN, 2)
         _alt_set(self.Entry_tags, T.ANNOTATION_TAGS, 2)
         _alt_set(self.Button_ok, T.ANNOTATION_ADD_MOD_OK, 2)
-        _alt_set(self.Button_help, T.ANNOTATION_ADD_MOD_HELP, 2)
 
 
         core.window.mainwindow.update()
@@ -201,10 +181,6 @@ class AddMods(object):
         self.Entry_author.insert(0, AddModInputCache.author)
         self.Entry_explain.insert(0, AddModInputCache.explain)
         self.Entry_tags.insert(0, AddModInputCache.tags)
-
-
-    def bin_open_help(self, *args, **kwds):
-        webbrowser.open('http://d3dxskinmanage.numlinka.com/#/enhance/001')
 
 
     def bin_ok(self, *args, **kwds):

@@ -1,87 +1,132 @@
 # -*- coding: utf-8 -*-
 
 # std
+import io
 import os
-import threading
 
 # install
-import win32gui
-import ttkbootstrap
+import PIL.Image
+import PIL.ImageGrab
 
 # project
 import core
 
 
-class AddPreview (object):
-    def __init__(self, SHA, filepath):
-        with open(filepath, 'rb') as f: self.content = f.read()
+# 预览图最终保存的格式 (读取预览图时只识别这两种)
+PREVIEW_SUFFIXES = ('.png', '.jpg')
 
-        self.basename = os.path.basename(filepath)
-        self.suffix = self.basename[self.basename.rfind('.'):]
-
-        self.SHA = SHA
-
-        item = core.module.mods_index.get_item(SHA)
-        object_ = item['object']
-        name = item['name']
-
-        self.windows = ttkbootstrap.Toplevel('操作确认')
-        self.windows.attributes("-topmost", True)
-        self.windows.transient(core.window.mainwindow)
-        # self.windows.grab_set()
-
-        try:
-            self.windows.iconbitmap(default=core.env.file.local.iconbitmap)
-            self.windows.iconbitmap(bitmap=core.env.file.local.iconbitmap)
-        except Exception:
-            ...
-
-        text = f'SHA :: {SHA}\n{object_} :: {name}\n\n你希望将图片设置为\n\n' +\
-                '　　预览图：在窗口右侧显示\n全屏预览图：点击预览图后全屏显示\n'
-
-        self.Label = ttkbootstrap.Label(self.windows, text=text)
-        self.Label.pack(side='top', padx=10, pady=10)
-
-        self.Button_surface = ttkbootstrap.Button(self.windows, text='预览图', width=10, bootstyle='success-outline', command=self.bin_to_surface)
-        self.Button_inside = ttkbootstrap.Button(self.windows, text='全屏预览图', width=10, bootstyle='info-outline', command=self.bin_to_inside)
-
-        self.Button_inside.pack(side='left', fill='x', expand=True, padx=10, pady=(0, 10))
-        self.Button_surface.pack(side='left', fill='x', expand=True, padx=(0, 10), pady=(0, 10))
-
-        self.windows.update()
-
-        width = self.windows.winfo_width()
-        height = self.windows.winfo_height()
-
-        _x, _y = win32gui.GetCursorInfo()[2]
-
-        x = _x - width // 2
-        y = _y - height // 2 - 20
-
-        if x < 0: x = 0
-        if y < 0: y = 0
-
-        self.windows.geometry(f'+{x}+{y}')
-        self.windows.resizable(False, False)
+# 允许作为预览图导入的图片格式 (非 png/jpg 会被转换为 png)
+IMAGE_SUFFIXES = ('.png', '.jpg', '.jpeg', '.bmp', '.gif', '.webp')
 
 
-    def bin_to_surface(self, *args):
-        if not os.path.isdir(core.env.directory.resources.preview): os.mkdir(core.env.directory.resources.preview)
-        with open(os.path.join(core.env.directory.resources.preview, f'{self.SHA}{self.suffix}'), 'wb') as fileobject:
-            fileobject.write(self.content)
-        # core.UI.ModsManage.sbin_update_preview(self.SHA)
-        core.window.interface.mods_manage.sbin_update_preview()
-        self.windows.destroy()
+def _image_to_png(image: PIL.Image.Image) -> bytes:
+    if image.mode not in ('RGB', 'RGBA', 'L', 'LA', 'P'):
+        image = image.convert('RGBA')
+
+    buffer = io.BytesIO()
+    image.save(buffer, format='PNG')
+    return buffer.getvalue()
 
 
-    def bin_to_inside(self, *args):
-        if not os.path.isdir(core.env.directory.resources.preview_screen): os.mkdir(core.env.directory.resources.preview_screen)
-        with open(os.path.join(core.env.directory.resources.preview_screen, f'{self.SHA}{self.suffix}'), 'wb') as fileobject:
-            fileobject.write(self.content)
-        self.windows.destroy()
+def normalize_image(content: bytes, suffix: str) -> tuple[bytes, str]:
+    """统一图片格式, 返回 (图片内容, 小写后缀名 .png / .jpg)"""
+    suffix = suffix.lower()
+    if suffix == '.jpeg': suffix = '.jpg'
+    if suffix in PREVIEW_SUFFIXES: return content, suffix
+
+    with PIL.Image.open(io.BytesIO(content)) as image:
+        return _image_to_png(image), '.png'
+
+
+def has_preview(SHA: str) -> bool:
+    """该 Mod 是否已有预览图 (包括 Mod 文件夹内自带的预览图)"""
+    directory = core.env.directory.resources.preview
+
+    for suffix in PREVIEW_SUFFIXES:
+        if os.path.isfile(os.path.join(directory, f'{SHA}{suffix}')): return True
+        if os.path.isfile(os.path.join(core.userenv.directory.work_mods, SHA, f'preview{suffix}')): return True
+
+    return False
+
+
+def save_preview(SHA: str, content: bytes, suffix: str) -> None:
+    """保存预览图, 并删除其他格式的旧预览图, 避免旧图片被优先读取"""
+    content, suffix = normalize_image(content, suffix)
+    directory = core.env.directory.resources.preview
+    os.makedirs(directory, exist_ok=True)
+
+    for old_suffix in PREVIEW_SUFFIXES:
+        if old_suffix == suffix: continue
+        old_path = os.path.join(directory, f'{SHA}{old_suffix}')
+        if os.path.isfile(old_path): os.remove(old_path)
+
+    with open(os.path.join(directory, f'{SHA}{suffix}'), 'wb') as fileobject:
+        fileobject.write(content)
+
+
+def apply_preview(SHA: str, content: bytes, suffix: str) -> bool:
+    """将图片设为 Mod 的预览图, 已有预览图时提示是否覆盖
+
+    返回是否设置成功
+    """
+    if has_preview(SHA):
+        answer = core.window.messagebox.askyesno(title='覆盖预览图', message='该 Mod 已有预览图\n是否覆盖?')
+        if not answer: return False
+
+    try:
+        save_preview(SHA, content, suffix)
+
+    except Exception as e:
+        core.window.messagebox.showerror(title='操作失败', message=f'预览图设置失败\n{e}')
+        return False
+
+    core.window.mainwindow.after(0, core.window.interface.mods_manage.sbin_update_preview, SHA)
+    return True
+
+
+def apply_preview_from_file(SHA: str, filepath: str) -> bool:
+    try:
+        with open(filepath, 'rb') as fileobject: content = fileobject.read()
+
+    except Exception as e:
+        core.window.messagebox.showerror(title='图片读取失败', message=f'无法读取该图片\n{e}')
+        return False
+
+    return apply_preview(SHA, content, os.path.splitext(filepath)[1])
+
+
+def get_clipboard_image() -> tuple[bytes, str] | None:
+    """读取剪贴板中的图片
+
+    支持截图等位图数据, 以及在资源管理器中复制的图片文件
+    返回 (图片内容, 后缀名), 剪贴板中没有图片时返回 None
+    """
+    try:
+        data = PIL.ImageGrab.grabclipboard()
+    except Exception:
+        return None
+
+    if isinstance(data, list):
+        for path in data:
+            suffix = os.path.splitext(path)[1].lower()
+            if not os.path.isfile(path) or suffix not in IMAGE_SUFFIXES: continue
+
+            try:
+                with open(path, 'rb') as fileobject:
+                    return normalize_image(fileobject.read(), suffix)
+            except Exception:
+                continue
+
+        return None
+
+    if isinstance(data, PIL.Image.Image):
+        return _image_to_png(data), '.png'
+
+    return None
 
 
 def add_preview(filepath: str):
+    """拖入图片: 直接设为当前 Mod 的预览图"""
     SHA = core.window.interface.mods_manage.sbin_get_select_choices()
 
     if SHA is None:
@@ -92,25 +137,5 @@ def add_preview(filepath: str):
         core.window.messagebox.showerror(title='未选中错误', message='需要先选中一个 Mod\n才能添加预览图')
         return
 
-    threading.Thread(None, AddPreview, 'Add-Preview', (SHA, filepath), daemon=True).start()
-    return
-
-    item = core.Module.ModsIndex.get_item(SHA)
-    object_ = item['object']
-    name = item['name']
-
-    answer = core.UI.Messagebox.askyesno(title='操作确认',message=(f'是否将图片设置为\n{SHA}\n{object_} :: {name}\n的预览图'))
-    if not answer: return
-
-    basename = os.path.basename(filepath)
-    suffix = basename[basename.rfind('.'):]
-
-    try:
-        with open(filepath, 'rb') as fileobject:
-            content = fileobject.read()
-        with open(os.path.join(core.environment.resources.preview, f'{SHA}{suffix}'), 'wb') as fileobject:
-            fileobject.write(content)
-    except Exception:
-        core.UI.Messagebox.showerror(title='操作失败', message='预览图设置失败\n未知错误')
-
-    core.UI.ModsManage.sbin_update_preview(SHA)
+    # 延后到主循环执行, 避免在拖放回调中直接弹出对话框
+    core.window.mainwindow.after(0, apply_preview_from_file, SHA, filepath)

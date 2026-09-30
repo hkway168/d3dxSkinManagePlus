@@ -2,6 +2,7 @@
 
 # std
 import os
+import subprocess
 import tkinter.filedialog
 import threading
 
@@ -12,6 +13,7 @@ import ttkbootstrap
 # project
 import core
 from constant import *
+from window.popup_menu import PopupMenu
 
 
 class selfstatus (object):
@@ -67,21 +69,6 @@ class ModifyItemData (object):
         self.Entry_tags = ttkbootstrap.Entry(self.Frame_tags, width=width)
         self.Label_tags = ttkbootstrap.Label(self.Frame_tags, text='类型标签：')
 
-        self.Frame_get_1 = ttkbootstrap.Frame(self.windows)
-        self.Entry_url_1 = ttkbootstrap.Entry(self.Frame_get_1, width=width)
-        self.Label_url_1 = ttkbootstrap.Label(self.Frame_get_1, text='下载地址：')
-        self.Combobox_mode_1 = ttkbootstrap.Combobox(self.Frame_get_1, values=['get', 'lanzou'])
-
-        self.Frame_get_2 = ttkbootstrap.Frame(self.windows)
-        self.Entry_url_2 = ttkbootstrap.Entry(self.Frame_get_2, width=width)
-        self.Label_url_2 = ttkbootstrap.Label(self.Frame_get_2, text='下载地址：')
-        self.Combobox_mode_2 = ttkbootstrap.Combobox(self.Frame_get_2, values=['get', 'lanzou'])
-
-        self.Frame_get_3 = ttkbootstrap.Frame(self.windows)
-        self.Entry_url_3 = ttkbootstrap.Entry(self.Frame_get_3, width=width)
-        self.Label_url_3 = ttkbootstrap.Label(self.Frame_get_3, text='下载地址：')
-        self.Combobox_mode_3 = ttkbootstrap.Combobox(self.Frame_get_3, values=['get', 'lanzou'])
-
         self.Button_ok = ttkbootstrap.Button(self.windows, text='保存', width=10, bootstyle="info-outline", command=self.bin_ok)
         self.Button_cancel = ttkbootstrap.Button(self.windows, text='取消', width=10, bootstyle="success-outline", command=self.bin_cancel)
         self.Button_remove = ttkbootstrap.Button(self.windows, text='删除', width=10, bootstyle="warning-outline", command=self.bin_remove)
@@ -115,25 +102,6 @@ class ModifyItemData (object):
         self.Label_tags.pack(side='left', padx=(0, 5))
         self.Entry_tags.pack(side='left', fill='x', expand=1)
 
-        self.Frame_get_1.pack(side='top', fill='x', padx=10, pady=(0, 10))
-        self.Label_url_1.pack(side='left', padx=(0, 5))
-        self.Combobox_mode_1.pack(side='right')
-        self.Entry_url_1.pack(side='left', fill='x', expand=1)
-
-        self.Frame_get_2.pack(side='top', fill='x', padx=10, pady=(0, 10))
-        self.Label_url_2.pack(side='left', padx=(0, 5))
-        self.Combobox_mode_2.pack(side='right')
-        self.Entry_url_2.pack(side='left', fill='x', expand=1)
-
-        self.Frame_get_3.pack(side='top', fill='x', padx=10, pady=(0, 10))
-        self.Label_url_3.pack(side='left', padx=(0, 5))
-        self.Combobox_mode_3.pack(side='right')
-        self.Entry_url_3.pack(side='left', fill='x', expand=1)
-
-        # self.Frame_mode.pack(side='top', fill='x', padx=10, pady=(0, 10))
-        # self.Label_mode.pack(side='left', padx=(0, 5))
-        # self.Combobox_mode.pack(side='left', fill='x', expand=1)
-
         self.Button_ok.pack(side='right', padx=10, pady=(0, 10))
         self.Button_cancel.pack(side='right', padx=(10, 0), pady=(0, 10))
         self.Button_remove.pack(side='right', padx=(10, 0), pady=(0, 10))
@@ -151,12 +119,6 @@ class ModifyItemData (object):
         _alt_set(self.Combobox_grading, T.ANNOTATION_GRADING, 2)
         _alt_set(self.Entry_explain, T.ANNOTATION_EXPLAIN, 2)
         _alt_set(self.Entry_tags, T.ANNOTATION_TAGS, 2)
-        _alt_set(self.Entry_url_1, T.ANNOTATION_GET_URL, 2)
-        _alt_set(self.Entry_url_2, T.ANNOTATION_GET_URL, 2)
-        _alt_set(self.Entry_url_3, T.ANNOTATION_GET_URL, 2)
-        _alt_set(self.Combobox_mode_1, T.ANNOTATION_GET_MODE, 2)
-        _alt_set(self.Combobox_mode_2, T.ANNOTATION_GET_MODE, 2)
-        _alt_set(self.Combobox_mode_3, T.ANNOTATION_GET_MODE, 2)
         _alt_set(self.Button_ok, T.ANNOTATION_MODIFY_ITEM_OK, 2)
         _alt_set(self.Button_cancel, T.ANNOTATION_MODIFY_ITEM_CANCEL, 2)
         _alt_set(self.Button_remove, T.ANNOTATION_MODIFY_ITEM_REMOVE, 1)
@@ -204,24 +166,6 @@ class ModifyItemData (object):
         self.Combobox_grading.insert(0, self.old_grading)
         self.Entry_tags.insert(0, self.old_tags)
 
-        self.old_gets = data.get('get', [])
-
-        for index_, get_ in enumerate(self.old_gets):
-            if index_ == 0:
-                self.Entry_url_1.insert(0, get_.get('url', ''))
-                self.Combobox_mode_1.insert(0, get_.get('mode', ''))
-
-            elif index_ == 1:
-                self.Entry_url_2.insert(0, get_.get('url', ''))
-                self.Combobox_mode_2.insert(0, get_.get('mode', ''))
-
-            elif index_ == 2:
-                self.Entry_url_3.insert(0, get_.get('url', ''))
-                self.Combobox_mode_3.insert(0, get_.get('mode', ''))
-
-            else:
-                core.window.messagebox.showwarning(title='数据超出处理长度', message='get 数据数量超出处理长度\n修改会导致超出的部分数据丢失')
-
 
     def bin_ok(self, **args):
         s_object = self.Entry_object.get()
@@ -237,30 +181,6 @@ class ModifyItemData (object):
         self.new_explain = s_explain.strip().replace("\\n", "\n")
         self.new_tags = [x for x in s_tags.split(' ') if x]
         self.new_author = s_author.strip()
-
-        s_get = [
-            {
-                'url': self.Entry_url_1.get().strip(),
-                'mode': self.Combobox_mode_1.get().strip()
-            },
-            {
-                'url': self.Entry_url_2.get().strip(),
-                'mode': self.Combobox_mode_2.get().strip()
-            },
-            {
-                'url': self.Entry_url_3.get().strip(),
-                'mode': self.Combobox_mode_3.get().strip()
-            },
-        ]
-
-        self.new_get = []
-
-        for data_ in s_get:
-            if not data_['url']:
-                continue
-
-            else:
-                self.new_get.append(data_)
 
         if not self.new_object:
             self.Label_except['text'] = '未填写 作用对象'
@@ -278,18 +198,13 @@ class ModifyItemData (object):
             self.Label_except['text'] = '年龄分级 只能是 G P R 其中之一'
             return
 
-        for data_ in self.new_get:
-            if data_['mode'] not in ['get', 'lanzou']:
-                self.Label_except['text'] = '下载模式只能是 get 或 lanzou'
-                return
-
         newdata = {
             'object': self.new_object,
             'name': self.new_name,
             'explain': self.new_explain,
             'grading': self.new_grading,
             'author': self.new_author,
-            'get': self.new_get,
+            'get': [],
             'tags': self.new_tags
         }
 
@@ -332,8 +247,71 @@ class ModifyItemData (object):
         self.bin_cancel()
 
 
-def modify_item_data(*args):
-    choice = core.window.interface.mods_manage.sbin_get_select_choices()
-    if choice is None: return
-    if core.module.mods_index.get_item(choice) is None: return
-    ModifyItemData(choice)
+def modify_item_data(SHA: str | None = None):
+    if SHA is None:
+        SHA = core.window.interface.mods_manage.sbin_get_select_choices()
+    if SHA is None: return
+    if core.module.mods_index.get_item(SHA) is None: return
+    ModifyItemData(SHA)
+
+
+def get_cache_path(SHA: str) -> str | None:
+    """Mod 解压后的缓存目录 (已加载为 SHA, 已卸载为 disabled-SHA)"""
+    for name in (SHA, f'{K.DISABLED}-{SHA}'):
+        path = os.path.abspath(os.path.join(core.userenv.directory.work_mods, name))
+        if os.path.isdir(path): return path
+    return None
+
+
+def get_source_path(SHA: str) -> str | None:
+    """Mod 原始压缩文件"""
+    path = os.path.abspath(os.path.join(core.env.directory.resources.mods, SHA))
+    return path if os.path.isfile(path) else None
+
+
+def open_in_explorer(path: str | None):
+    """在资源管理器中定位并选中目标"""
+    if not path or not os.path.exists(path):
+        core.window.messagebox.showerror(title='路径不存在', message=f'目标不存在\n{path or ""}')
+        return
+    subprocess.Popen(f'explorer /select,"{os.path.normpath(path)}"')
+
+
+class ChoicesContextMenu (object):
+    """Mod 选择列表右键菜单: 修改 Mod 信息 (需右键选中具体 Mod)"""
+
+    def __init__(self, treeview):
+        self.treeview = treeview
+        self.menu = PopupMenu(treeview)
+        treeview.bind('<ButtonRelease-3>', self.bin_release, add='+')
+
+    def bin_release(self, event):
+        self.menu.close()
+
+        try: core.window.annotation_toplevel.withdraw()
+        except Exception: ...
+
+        # 仅在右键具体 Mod 时弹出菜单, 空白处 / "卸载该对象" 不显示
+        iid = self.treeview.identify_row(event.y)
+        if not iid or core.module.mods_index.get_item(iid) is None: return
+
+        # 右键时同步选中该 Mod, 便于确认操作对象
+        self.treeview.selection_set(iid)
+        self.treeview.focus(iid)
+
+        cache_path = get_cache_path(iid)
+        source_path = get_source_path(iid)
+
+        self.menu.clear()
+        self.menu.add_command(label='修改 Mod 信息', command=lambda: modify_item_data(iid))
+        self.menu.add_command(label='查看缓存文件', command=lambda: open_in_explorer(cache_path), enabled=cache_path is not None)
+        self.menu.add_command(label='查看原始文件', command=lambda: open_in_explorer(source_path), enabled=source_path is not None)
+        self.menu.popup(event.x_root, event.y_root)
+
+
+choices_menu: ChoicesContextMenu | None = None
+
+
+def bind_context_menu(treeview):
+    global choices_menu
+    choices_menu = ChoicesContextMenu(treeview)

@@ -13,12 +13,7 @@ class RE ():
 
 class INDEX ():
     INFORMATION = "information"
-    VARIABLE = "variable"
-    UPDATE = "update"
     MODS = "mods"
-
-    URL = "url"
-    MODE = "mode"
 
     OBJECT = "object"
     TYPE = "type"
@@ -27,7 +22,6 @@ class INDEX ():
     GRADING = "grading"
     AUTHOR = "author"
     TAGS = "tags"
-    GET = "get"
 
 
 class ACTION_VALUE ():

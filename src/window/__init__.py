@@ -111,7 +111,6 @@ def initial():
     _alt_set = annotation_toplevel.register
     _alt_set(login.label_description, T.ANNOTATION_USER_DESCRIPTION, 2)
     _alt_set(login.button_login, T.ANNOTATION_LOGIN, 1)
-    _alt_set(status.label_help, T.ANNOTATION_HELP, 1)
     _alt_set(status.label_logout, T.ANNOTATION_LOGOUT, 1)
     interface.initial()
 
@@ -141,7 +140,6 @@ def _logout():
         interface.mods_manage.update_classification_list,
         interface.mods_manage.update_objects_list,
         interface.mods_manage.update_choices_list,
-        interface.mods_warehouse.refresh
     ]:
         try:
             callobject()

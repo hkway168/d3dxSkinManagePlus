@@ -28,6 +28,7 @@ class __directory (Directory):
 
 class file (static):
     configuration: str = ...
+    classification_order: str = ...
 
 
 directory = __directory()
@@ -53,6 +54,7 @@ def login(__username: str):
     directory.work_mods = __(directory.work, "Mods")
 
     file.configuration = __(env.base.home, __username, "configuration")
+    file.classification_order = __(env.base.home, __username, "classification_order.json")
 
     try: configuration = libs.econfiguration.Configuration(file.configuration)
     except Exception: configuration = libs.econfiguration.Configuration()
@@ -72,3 +74,4 @@ def logout():
     directory.work_mods = ...
 
     file.configuration = ...
+    file.classification_order = ...

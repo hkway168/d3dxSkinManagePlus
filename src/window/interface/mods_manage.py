@@ -235,26 +235,27 @@ class ModsManage(object):
     def update_classification_list(self):
         core.log.debug("更新分类列表", L.WINDOS_MODS_MANAGE)
 
+        tree = self.treeview_classification
         class_list = core.module.mods_manage.get_class_list()
-        exist_class_list = self.treeview_classification.get_children()
+        exist_class_list = tree.get_children()
 
         # 剔除已经不存在的分类
         nonexistent = set(exist_class_list) - set(class_list)
-        self.treeview_classification.delete(*nonexistent)
+        tree.delete(*nonexistent)
 
         for index, class_ in enumerate(class_list):
-            lst = core.module.mods_manage.get_object_list(class_)
-            amount = len(lst)
+            amount = len(core.module.mods_manage.get_object_list(class_))
 
             if class_ in exist_class_list:
-                self.treeview_classification.item(
+                tree.item(
                     class_,
                     text=f"{class_}\n[{amount}]",
                     image=core.window.treeview_thumbnail.get(class_)
                 )
+                tree.move(class_, "", index)
 
             else:
-                self.treeview_classification.insert(
+                tree.insert(
                     "", index, class_,
                     text=f"{class_}\n[{amount}]",
                     tags=(class_),
@@ -301,6 +302,7 @@ class ModsManage(object):
                     tags=object_name,
                     image=core.window.treeview_thumbnail.get(object_name)
                 )
+                self.treeview_objects.move(object_name, "", index)
 
             else:
                 self.treeview_objects.insert(

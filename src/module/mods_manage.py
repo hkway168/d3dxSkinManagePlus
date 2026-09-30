@@ -2,11 +2,15 @@
 
 # std
 import os
+import json
 import shutil
 import threading
 
 import core
 from constant import *
+
+
+UNCLASSIFIED = "未分类"
 
 
 class ModsManage (object):
@@ -140,13 +144,25 @@ class ModsManage (object):
         # self.__classification_lst = [x for x in self.__classification if x != '未分类']
 
         # ! 参照分类列表
-        self.__classification_lst = [x for x in self.__reference_classification if x != '未分类']
+        self.__sort_class_list()
 
-        # 对分类列表进行排序
-        self.__classification_lst.sort(key=_list_sort_for_class_name)
 
-        # if '未分类' in self.__classification: self.__classification_lst += ['未分类']
-        self.__classification_lst += ['未分类']
+    def __sort_class_list(self):
+        """按用户自定义顺序排列分类, 未记录顺序的分类按默认规则排在其后, "未分类" 固定在最后"""
+        with self.__call_lock:
+            index = {name: i for i, name in enumerate(_read_class_order())}
+            lst = [x for x in self.__reference_classification if x != UNCLASSIFIED]
+            lst.sort(key=lambda x: (index.get(x, len(index)), _list_sort_for_class_name(x)))
+            self.__classification_lst = lst + [UNCLASSIFIED]
+
+
+    def set_class_order(self, order: list[str]) -> None:
+        """保存分类的自定义顺序并立即应用到分类列表"""
+        with self.__call_lock:
+            _write_class_order([x for x in order if x and x != UNCLASSIFIED])
+            self.__sort_class_list()
+
+        core.construct.event.set_event(E.MODS_MANAGE_CACHE_REFRESHED)
 
 
     def update_loaded_mods(self):
@@ -200,7 +216,33 @@ class ModsManage (object):
 
 
     def get_object_list(self, class_: str) -> list[str]:
-        return self.__classification.get(class_, []).copy()
+        """返回分类下的对象列表
+
+        顺序与分类参照文件一致 (可在 "管理子对象" 中调整),
+        "未分类" 按名称排序
+        """
+        local = self.__classification.get(class_, [])
+        if class_ == UNCLASSIFIED:
+            return sorted(local)
+
+        result = list(dict.fromkeys(self.__reference_classification.get(class_, [])))
+        result += sorted(set(local) - set(result))
+        return result
+
+
+    def set_reference_object_list(self, class_: str, objects: list[str]) -> None:
+        """保存分类参照中的对象列表 (仅调整顺序时无需完整刷新)"""
+        if not class_ or class_ == UNCLASSIFIED: return
+
+        objects = [x for x in dict.fromkeys(x.strip() for x in objects) if x]
+        with self.__call_lock:
+            path = os.path.join(core.userenv.directory.classification, class_)
+            with open(path, "w", encoding="utf-8") as file_object:
+                file_object.write("".join(f"{x}\n" for x in objects))
+
+            self.__reference_classification[class_] = objects
+
+        core.construct.event.set_event(E.MODS_MANAGE_CACHE_REFRESHED)
 
 
     def get_object_sha_list(self, object_: str) -> list[str]:
@@ -298,6 +340,23 @@ class ModsManage (object):
         with self.__call_lock:
             target = os.path.join(core.userenv.directory.work_mods, SHA)
             shutil.rmtree(target)
+
+
+def _read_class_order() -> list[str]:
+    """读取分类自定义顺序 list :: 分类名称[]"""
+    try:
+        with open(core.userenv.file.classification_order, "r", encoding="utf-8") as file_object:
+            data = json.load(file_object)
+    except Exception:
+        return []
+
+    if not isinstance(data, list): return []
+    return [x for x in data if isinstance(x, str)]
+
+
+def _write_class_order(order: list[str]) -> None:
+    with open(core.userenv.file.classification_order, "w", encoding="utf-8") as file_object:
+        json.dump(order, file_object, ensure_ascii=False, indent=4)
 
 
 def _list_sort_for_item_name(key) -> str:

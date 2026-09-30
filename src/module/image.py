@@ -15,7 +15,8 @@ from constant import *
 def image_resize(image_: Union[PIL.Image.Image, str], width: int, height: int, tkimg: bool = False) -> PIL.Image.Image:
     """调整图片大小, 保持原图片比例"""
     if isinstance(image_, PIL.Image.Image): picture = image_
-    elif isinstance(image_, str): picture = PIL.Image.open(image_)
+    elif isinstance(image_, str):
+        with PIL.Image.open(image_) as fileimage: picture = fileimage.copy()
     else: raise TypeError("The image_ type is not Image or str.")
 
     raw_width, raw_height = picture.size[0], picture.size[1]
@@ -37,7 +38,8 @@ def image_resize(image_: Union[PIL.Image.Image, str], width: int, height: int, t
 def image_canvas(image_: Union[PIL.Image.Image, str], width: int, height: int, tkimg: bool = False) -> PIL.Image.Image:
     """调整图片大小, 使用指定比例, 透明背景"""
     if isinstance(image_, PIL.Image.Image): picture = image_
-    elif isinstance(image_, str): picture = PIL.Image.open(image_)
+    elif isinstance(image_, str):
+        with PIL.Image.open(image_) as fileimage: picture = fileimage.copy()
     else: raise TypeError("The image_ type is not Image or str.")
 
     background = PIL.Image.new('RGBA', (width, height), "#00000000")
@@ -70,27 +72,6 @@ def get_preview_image(SHA: str | None, width: int, height: int):
             return core.module.image.image_resize(target, width, height, tkimg=True)
 
     return None
-    return PIL.ImageTk.PhotoImage(PIL.Image.new('RGBA', (width, height), "#00000000"))
-
-
-def get_full_screen_preview(SHA: str | None, width: int, height: int):
-    if SHA is None: return None
-
-    if not os.path.isdir(core.env.directory.resources.preview_screen): os.mkdir(core.env.directory.resources.preview_screen)
-
-    for suffix in ['.png', '.jpg']:
-        target = os.path.join(core.env.directory.resources.preview_screen, f'{SHA}{suffix}')
-        if os.path.isfile(target):
-            return core.module.image.image_resize(target, width, height, tkimg=True)
-
-    for suffix in ['.png', '.jpg']:
-        target = os.path.join(core.userenv.directory.work_mods, SHA, f'preview_screen{suffix}')
-        if os.path.isfile(target):
-            with open(target, 'rb') as fileobject:
-                with open(os.path.join(core.env.directory.resources.preview_screen, f'{SHA}{suffix}'), 'wb') as tofileobject:
-                    tofileobject.write(fileobject.read())
-
-    return get_preview_image(SHA, width, height)
 
 
 class ImageTkThumbnailGroup(object):

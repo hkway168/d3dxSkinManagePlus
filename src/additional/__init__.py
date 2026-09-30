@@ -9,16 +9,16 @@ import core
 # self
 from . import hook_dropfiles
 from . import modify_classification
-from . import screen_preview
+from . import preview_actions
 from . import modify_item_data
 
 
 def initial():
     windnd.hook_dropfiles(core.window.frame_notebook, func=hook_dropfiles.hook_dropfiles)
-    core.window.interface.mods_manage.treeview_classification.bind('<Double-Button-3>', modify_classification.modify_classification)
-    # # core.UI.ModsManage.Label_preview.bind('<Double-Button-1>', screen_preview.full_screen_preview)
-    core.window.interface.mods_manage.label_preview.bind('<Button-1>', screen_preview.full_screen_preview)
-    core.window.interface.mods_manage.treeview_choices.bind('<Double-Button-3>', modify_item_data.modify_item_data)
+    modify_classification.bind_context_menu(core.window.interface.mods_manage)
+    core.window.interface.mods_manage.label_preview.bind('<Button-1>', preview_actions.bin_preview_click)
+    core.window.interface.mods_manage.label_preview.bind('<Button-3>', preview_actions.bin_preview_right_click)
+    modify_item_data.bind_context_menu(core.window.interface.mods_manage.treeview_choices)
 
 
 

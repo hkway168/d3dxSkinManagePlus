@@ -20,7 +20,6 @@ VERSION_NAME = "1.5.6"
 MAIN_TITLE = f"{PROJECT} v{VERSION_NAME} -by {AUTHOR}"
 
 CODE_NAME = "kamisa"
-INDEX = f"https://numlinka.oss-cn-shanghai.aliyuncs.com/code-name/{CODE_NAME}/index.json"
 
 
 
@@ -39,7 +38,6 @@ class directory (Directory):
         mods = __(base.resources, "mods")
         d3dxs = __(base.resources, "3dmigoto")
         preview = __(base.resources, "preview")
-        preview_screen = __(base.resources, "preview_screen")
         thumbnail = __(base.resources, "thumbnail")
         cache = __(base.resources, "cache")
 
@@ -76,12 +74,6 @@ except Exception:
     configuration = libs.econfiguration.Configuration()
 
 
-class Link (object):
-    help = 'https://d3dxskinmanage.numlinka.com/#/help'
-    afdian = 'https://afdian.net/a/numlinka'
-    vocechat = 'https://vocechat.numlinka.com'
-
-
 __all__ = [
     "PROJECT",
     "AUTHOR",
@@ -90,10 +82,8 @@ __all__ = [
     "VERSION_NAME",
     "MAIN_TITLE",
     "CODE_NAME",
-    "INDEX",
     "base",
     "directory",
     "file",
-    "configuration",
-    "Link"
+    "configuration"
 ]

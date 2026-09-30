@@ -29,9 +29,6 @@ WINDOW_MODS_MANAGE_TS_CHOICE = "window-mods-manage-treeview-select-choice"
 # 缩略图加载完成
 THUMBNAIL_LOADED = "thumbnail-loaded"
 
-# Mod 下载任务变动
-MOD_DOWNLOAD_TASK_ALTERATION = "mod-download-task-alteration"
-
 
 __all__ = [
     "ENTER_MAINPOOL",
@@ -44,6 +41,5 @@ __all__ = [
     "WINDOW_MODS_MANAGE_TS_CLASS",
     "WINDOW_MODS_MANAGE_TS_OBJECT",
     "WINDOW_MODS_MANAGE_TS_CHOICE",
-    "THUMBNAIL_LOADED",
-    "MOD_DOWNLOAD_TASK_ALTERATION"
+    "THUMBNAIL_LOADED"
 ]

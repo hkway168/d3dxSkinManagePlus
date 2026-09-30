@@ -21,12 +21,9 @@ def initial():
     core.construct.event.register(E.WINDOW_MODS_MANAGE_TS_OBJECT, update_choices_list)
     core.construct.event.register(E.WINDOW_MODS_MANAGE_TS_OBJECT, update_preview)
     core.construct.event.register(E.WINDOW_MODS_MANAGE_TS_CHOICE, update_preview)
-    core.construct.event.register(E.MOD_DOWNLOAD_TASK_ALTERATION, update_warehouse_list)
 
 
 def when_entering_mainpool():
-    # 已禁用启动自动更新 (仅本地运行)
-    # core.sync.addtask("检查更新", core.module.update.check)
     core.sync.addtask("初始化登录用户列表", core.window.login.initial)
     core.sync.addtask("登录就绪", core.window.ready_login)
 
@@ -37,14 +34,12 @@ def user_logged_in():
     core.sync.addtask("加载所有 index 文件", core.module.index_manage.auto_load_all_index_file)
     core.sync.addtask("刷新模组管理", core.module.mods_manage.refresh)
     core.sync.addtask('更新 d3dx 信息', core.window.interface.d3dx_manage.update)
-    core.sync.addtask('更新模组仓库列表', core.window.interface.mods_warehouse.refresh)
 
 
 def update_all_list():
     update_choices_list()
     update_objects_list()
     update_classification_list()
-    update_warehouse_list()
 
 
 def update_classification_list():
@@ -61,7 +56,3 @@ def update_choices_list():
 
 def update_preview():
     core.window.mainwindow.after(0, core.window.interface.mods_manage.sbin_update_preview)
-
-
-def update_warehouse_list():
-    core.window.mainwindow.after(0, core.window.interface.mods_warehouse.refresh)

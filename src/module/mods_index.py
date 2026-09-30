@@ -54,34 +54,6 @@ class ModsIndex (object):
             self.__cache_object = {}
 
 
-    def __fill_variable(self, _mods: dict, _variable: dict) -> dict[str: dict]:
-        for SHA, roitem in _mods.items():
-            if "get" not in roitem: continue
-
-            for index, item in enumerate(roitem["get"]):
-                url = item["url"]
-                for key, value in _variable.items():
-                    url = url.replace(f"($.{key})", value)
-
-                item["url"] = url
-
-        return _mods
-
-
-    def __fill_variable_from_item(self, _item: dict, _variable: dict) -> dict[str: dict]:
-        if K.INDEX.GET not in _item:
-            return _item
-
-        for index, gets_ in enumerate(_item[K.INDEX.GET]):
-            url = gets_[K.INDEX.URL]
-            for key, value in _variable.items():
-                url = url.replace(f"($.{key})", value)
-
-            gets_[K.INDEX.URL] = url
-
-        return _item
-
-
     def __fill_vacancy_from_item(self, _item: dict) -> dict[str: dict]:
         """为 mod item 填充空缺的参数"""
         # todo
@@ -224,16 +196,7 @@ class ModsIndex (object):
             if data is None:
                 return None
 
-            # 1.5 版本之后保存的是原始数据
-            # 所以在返回 item 数据之前需要进行参数补齐
-            item_data = copy.deepcopy(data)
-            from_ = self.get_sha_from(SHA)
-            if from_ is None:
-                return item_data
-
-            else:
-                _variable = self.__original_index[from_].get(K.INDEX.VARIABLE, {})
-                return self.__fill_variable_from_item(item_data, _variable)
+            return copy.deepcopy(data)
 
 
     def get_object_list(self) -> list[str]:

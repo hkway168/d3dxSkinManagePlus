@@ -1,6 +1,5 @@
 numpy
 pillow
-requests
 pywin32
 ttkbootstrap
 windnd

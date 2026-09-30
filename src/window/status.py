@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 
 
-import webbrowser
 import ttkbootstrap
 
 import core
@@ -20,9 +19,6 @@ class Status (object):
 
         self.sizegrip.pack(side="right", fill="y")
 
-        self.label_help = ttkbootstrap.Label(self.master, text="[ 帮助 ]", cursor="hand2")
-        self.label_help.pack(side="right", padx=10, pady=5 )
-
         self.label_logout = ttkbootstrap.Label(self.master, text="[ 退出用户 ]", cursor="hand2")
         self.label_logout.pack(side="right", padx=10, pady=5 )
 
@@ -31,7 +27,6 @@ class Status (object):
         self.label_status.pack(side="left", padx=5, pady=5)
         self.progressbar_step.pack(side="left", padx=5, pady=5)
 
-        self.label_help.bind("<Button-1>", self.bin_open_help)
         self.label_logout.bind("<Button-1>", self.bin_logout)
 
         self.set_logout_visible(False)
@@ -40,14 +35,10 @@ class Status (object):
     def set_logout_visible(self, visible: bool) -> None:
         "控制退出用户入口的显示"
         if visible:
-            self.label_logout.pack(side="right", padx=10, pady=5, before=self.label_help)
+            self.label_logout.pack(side="right", padx=10, pady=5, after=self.sizegrip)
 
         else:
             self.label_logout.pack_forget()
-
-
-    def bin_open_help(self, *args):
-        webbrowser.open(core.env.Link.help)
 
 
     def bin_logout(self, *args):
