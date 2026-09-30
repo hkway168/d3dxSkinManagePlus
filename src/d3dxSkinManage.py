@@ -1,7 +1,14 @@
 # -*- coding: utf-8 -*-
 
+import os
 import sys
 import ctypes
+
+# 无控制台模式 (pythonw / PyInstaller --windowed) 下 stdout/stderr 为 None
+if sys.stdout is None:
+    sys.stdout = open(os.devnull, "w", encoding="utf-8")
+if sys.stderr is None:
+    sys.stderr = open(os.devnull, "w", encoding="utf-8")
 
 import core
 

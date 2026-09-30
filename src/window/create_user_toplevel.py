@@ -64,14 +64,14 @@ class CreateUserToplevel (object):
         self.entry_picture = ttkbootstrap.Entry(frame_form, textvariable=self.value_picture)
         self.entry_picture.grid(row=1, column=1, sticky="ew", padx=(10, 0), pady=6)
         self.button_picture = ttkbootstrap.Button(frame_form, text="浏览", width=6, cursor="hand2",
-                                                  bootstyle="secondary-outline", command=self.bin_choice_picture)
+                                                  bootstyle="outline", command=self.bin_choice_picture)
         self.button_picture.grid(row=1, column=2, padx=(6, 0), pady=6)
 
         ttkbootstrap.Label(frame_form, text="游戏程序").grid(row=2, column=0, sticky="w", pady=6)
         self.entry_game_path = ttkbootstrap.Entry(frame_form, textvariable=self.value_game_path)
         self.entry_game_path.grid(row=2, column=1, sticky="ew", padx=(10, 0), pady=6)
         self.button_game_path = ttkbootstrap.Button(frame_form, text="浏览", width=6, cursor="hand2",
-                                                    bootstyle="secondary-outline", command=self.bin_choice_game_path)
+                                                    bootstyle="outline", command=self.bin_choice_game_path)
         self.button_game_path.grid(row=2, column=2, padx=(6, 0), pady=6)
 
         ttkbootstrap.Label(frame_form, text="分类配置").grid(row=3, column=0, sticky="w", pady=6)

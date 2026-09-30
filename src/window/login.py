@@ -28,7 +28,7 @@ class Login(object):
         self.treeview_users.pack(side="top", fill="both", expand=True)
 
         self.button_create_user = ttkbootstrap.Button(
-            self.frame_left, text="创建用户", cursor="hand2", bootstyle="secondary-outline",
+            self.frame_left, text="创建用户", cursor="hand2", bootstyle="outline",
             command=self.bin_create_user)
         self.button_create_user.pack(side="top", fill="x", pady=(10, 0))
 
