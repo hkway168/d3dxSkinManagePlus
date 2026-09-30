@@ -7,8 +7,6 @@ import copy
 import json
 import threading
 
-import numpy
-
 import core
 
 from constant import *
@@ -75,15 +73,6 @@ class ModsIndex (object):
         return data_content
 
 
-    def __analyze_npy(self, file: str) -> dict[str: dict]:
-        if not os.path.isfile(file): raise FileNotFoundError()
-
-        numpy_object = numpy.load(file, allow_pickle=True)
-        data_content = numpy_object.item()
-
-        return data_content
-
-
     def load(self, file: str, mode: str, action: str = K.ACTION_VALUE.RAISE) -> None | list:
         """加载 index 文件
 
@@ -97,13 +86,8 @@ class ModsIndex (object):
 
         core.log.info(f"加载 {file} {action} 模式", L.MODULE_MODS_INDEX)
         if not os.path.isfile(file): raise FileNotFoundError()
-        if mode not in ["json", "npy"]: raise ValueError()
-
         if mode == "json":
             data_content = self.__analyze_json(file)
-
-        # elif mode == "npy":
-        #     _mods = self.__load_npy(file)
 
         else:
             core.log.error(f"不支持的加载模式 \"{mode}\"", L.MODULE_MODS_INDEX)

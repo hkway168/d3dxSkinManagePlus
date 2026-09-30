@@ -57,9 +57,18 @@ set "ICON_ARG="
 if exist "%ROOT%\local\iconbitmap.ico" set "ICON_ARG=--icon "%ROOT%\local\iconbitmap.ico""
 if exist "%OUT%" rmdir /s /q "%OUT%"
 
+rem --additional-hooks-dir: 插件运行时依赖 (buildtools\hooks\hook-module.plugins.py)
+rem   插件在运行时动态加载, PyInstaller 分析不到插件的 import, 需要额外打包常用模块
+rem --exclude-module: 缩减体积
+rem   numpy        主程序未使用 (约 26 MB), 旧环境中可能仍残留安装
+rem   PIL._avif    Pillow 11+ 的 AVIF 格式支持 (约 7.5 MB), 程序只处理 png / jpg
 "%VPY%" -m PyInstaller -y --clean --noconfirm %MODE% --windowed ^
     --name "%APP_NAME%" ^
     --paths "%ROOT%\src" ^
+    --additional-hooks-dir "%ROOT%\buildtools\hooks" ^
+    --exclude-module numpy ^
+    --exclude-module PIL._avif ^
+    --exclude-module PIL.AvifImagePlugin ^
     --collect-data ttkbootstrap ^
     --distpath "%ROOT%\dist\_pyi" ^
     --workpath "%WORK%" ^
@@ -86,6 +95,9 @@ if exist "%ROOT%\local\7zip\7z.exe" (
     echo [警告] 未找到 local\7zip\7z.exe，请手动放入 "%OUT%\local\7zip\"
 )
 if exist "%ROOT%\local\iconbitmap.ico" copy /y "%ROOT%\local\iconbitmap.ico" "%OUT%\local\" >nul
+
+rem 插件目录: 仅创建空目录, 不复制开发环境中的插件
+mkdir "%OUT%\plugins" >nul 2>nul
 
 echo.
 echo [完成] 输出目录: %OUT%

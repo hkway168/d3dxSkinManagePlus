@@ -32,7 +32,6 @@ Windows 10+
 ### 依赖库
 
 ```
-numpy
 pillow
 pywin32
 ttkbootstrap
