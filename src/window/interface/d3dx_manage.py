@@ -184,6 +184,10 @@ class D3dxManage(object):
         core.env.configuration.style_theme = value
         core.window.dpi.apply_style(core.window.style)
 
+        # 主题色变化后需要重新应用选择列表的状态配色
+        try: core.window.interface.mods_manage.apply_choices_tag_style()
+        except Exception: ...
+
 
     def bin_set_log_level(self, *_):
         self.combobox_log_level.selection_clear()

@@ -2,6 +2,7 @@
 
 # std
 import os
+import shutil
 import subprocess
 import tkinter.filedialog
 import threading
@@ -277,6 +278,33 @@ def open_in_explorer(path: str | None):
     subprocess.Popen(f'explorer /select,"{os.path.normpath(path)}"')
 
 
+def delete_cache(SHA: str):
+    """删除 Mod 在 work\\Mods 中的解压缓存 (若正在使用则先卸载)"""
+    if get_cache_path(SHA) is None:
+        core.window.messagebox.showerror(title='缓存不存在', message='该 Mod 没有解压缓存')
+        return
+
+    loaded = core.module.mods_manage.is_loaded_sha(SHA)
+    message = '确定删除该 Mod 的缓存文件?'
+    if loaded: message += '\n该 Mod 正在使用, 删除前将先卸载'
+    if not core.window.messagebox.askyesno(title='删除缓存文件', message=message): return
+
+    try:
+        if loaded:
+            object_ = core.module.mods_index.get_item(SHA)['object']
+            core.module.mods_manage.unload(object_, _notify=False)
+
+        for name in (SHA, f'{K.DISABLED}-{SHA}'):
+            path = os.path.join(core.userenv.directory.work_mods, name)
+            if os.path.isdir(path): shutil.rmtree(path)
+
+    except Exception as e:
+        core.window.messagebox.showerror(title='删除失败', message=f'删除缓存文件失败\n{e}')
+
+    finally:
+        core.construct.event.set_event(E.MOD_UNLOADED)
+
+
 class ChoicesContextMenu (object):
     """Mod 选择列表右键菜单: 修改 Mod 信息 (需右键选中具体 Mod)"""
 
@@ -305,6 +333,7 @@ class ChoicesContextMenu (object):
         self.menu.clear()
         self.menu.add_command(label='修改 Mod 信息', command=lambda: modify_item_data(iid))
         self.menu.add_command(label='查看缓存文件', command=lambda: open_in_explorer(cache_path), enabled=cache_path is not None)
+        self.menu.add_command(label='删除缓存文件', command=lambda: delete_cache(iid), enabled=cache_path is not None)
         self.menu.add_command(label='查看原始文件', command=lambda: open_in_explorer(source_path), enabled=source_path is not None)
         self.menu.popup(event.x_root, event.y_root)
 

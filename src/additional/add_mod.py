@@ -29,7 +29,7 @@ class AddMods(object):
     def __init__(self, filepath: str, filename: str = None):
         self.filepath = filepath
         self.basename = os.path.basename(filepath)
-        self.suffix = self.basename[self.basename.rfind('.') + 1:]
+        self.suffix = self.basename[self.basename.rfind('.') + 1:].lower()
         self.prefix = self.basename[:self.basename.rfind('.')] if not isinstance(filename, str) else filename
 
         with open(self.filepath, 'rb') as fileobject:
@@ -38,6 +38,9 @@ class AddMods(object):
             sha1.update(self.content)
             self.SHA = sha1.hexdigest().upper()
 
+        if not self.content:
+            core.window.messagebox.showerror(title='文件无效', message='该文件的内容为空\n无法作为 Mod 导入')
+            return
 
         # 如果 index 里面已经存储过该 SHA 的数据则直接保存 Mod 文件
         if core.module.mods_index.get_item(self.SHA) is not None:

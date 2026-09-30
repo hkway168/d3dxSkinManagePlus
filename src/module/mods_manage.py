@@ -75,7 +75,47 @@ class ModsManage (object):
 
                 object_list = [x.strip() for x in file_content if x.strip()]
 
-                self.__reference_classification[class_] = object_list
+                self.__reference_classification[class_] = list(dict.fromkeys(object_list))
+
+            self.__dedupe_reference_classification()
+
+
+    def __ordered_reference_classes(self) -> list[str]:
+        """分类参照按用户自定义顺序排列 (不含 "未分类")"""
+        index = {name: i for i, name in enumerate(_read_class_order())}
+        lst = [x for x in self.__reference_classification if x != UNCLASSIFIED]
+        lst.sort(key=lambda x: (index.get(x, len(index)), _list_sort_for_class_name(x)))
+        return lst
+
+
+    def __dedupe_reference_classification(self):
+        """保证一个对象只属于一个分类: 按分类顺序保留首次出现, 其余分类中的重复项移除并写回文件"""
+        with self.__call_lock:
+            seen = set()
+            for class_ in self.__ordered_reference_classes():
+                objects = self.__reference_classification[class_]
+                unique = [x for x in objects if x not in seen]
+                seen.update(unique)
+                if len(unique) == len(objects): continue
+
+                core.log.warn(f"分类 \"{class_}\" 中的对象已存在于其他分类, 已移除: {[x for x in objects if x not in unique]}", L.MODULE_MODS_MANAGE)
+                self.__reference_classification[class_] = unique
+                try: self.__write_reference_file(class_, unique)
+                except Exception as e: core.log.error(f"写入分类 \"{class_}\" 失败 {e.__class__} {e}", L.MODULE_MODS_MANAGE)
+
+
+    def __write_reference_file(self, class_: str, objects: list[str]) -> None:
+        path = os.path.join(core.userenv.directory.classification, class_)
+        with open(path, "w", encoding="utf-8") as file_object:
+            file_object.write("".join(f"{x}\n" for x in objects))
+
+
+    def get_object_class(self, object_: str) -> str | None:
+        """返回对象所属的分类, 未归类返回 None"""
+        with self.__call_lock:
+            for class_, objects in self.__reference_classification.items():
+                if object_ in objects: return class_
+        return None
 
 
     def update_local_sha_list(self):
@@ -150,10 +190,7 @@ class ModsManage (object):
     def __sort_class_list(self):
         """按用户自定义顺序排列分类, 未记录顺序的分类按默认规则排在其后, "未分类" 固定在最后"""
         with self.__call_lock:
-            index = {name: i for i, name in enumerate(_read_class_order())}
-            lst = [x for x in self.__reference_classification if x != UNCLASSIFIED]
-            lst.sort(key=lambda x: (index.get(x, len(index)), _list_sort_for_class_name(x)))
-            self.__classification_lst = lst + [UNCLASSIFIED]
+            self.__classification_lst = self.__ordered_reference_classes() + [UNCLASSIFIED]
 
 
     def set_class_order(self, order: list[str]) -> None:
@@ -231,15 +268,22 @@ class ModsManage (object):
 
 
     def set_reference_object_list(self, class_: str, objects: list[str]) -> None:
-        """保存分类参照中的对象列表 (仅调整顺序时无需完整刷新)"""
+        """保存分类参照中的对象列表 (仅调整顺序时无需完整刷新)
+
+        一个对象只能属于一个分类, 列表中的对象会从其他分类中移除
+        """
         if not class_ or class_ == UNCLASSIFIED: return
 
         objects = [x for x in dict.fromkeys(x.strip() for x in objects) if x]
         with self.__call_lock:
-            path = os.path.join(core.userenv.directory.classification, class_)
-            with open(path, "w", encoding="utf-8") as file_object:
-                file_object.write("".join(f"{x}\n" for x in objects))
+            _objects = set(objects)
+            for other, other_objects in self.__reference_classification.items():
+                if other == class_ or not (_objects & set(other_objects)): continue
+                remain = [x for x in other_objects if x not in _objects]
+                self.__write_reference_file(other, remain)
+                self.__reference_classification[other] = remain
 
+            self.__write_reference_file(class_, objects)
             self.__reference_classification[class_] = objects
 
         core.construct.event.set_event(E.MODS_MANAGE_CACHE_REFRESHED)
@@ -263,6 +307,28 @@ class ModsManage (object):
         return False
 
 
+    def is_loaded_sha(self, SHA: str) -> bool:
+        """该 SHA 是否正在被使用 (已加载到工作目录且处于启用状态)"""
+        with self.__call_lock:
+            return SHA in self.__table_loads.values()
+
+
+    def is_cached_sha(self, SHA: str) -> bool:
+        """该 SHA 是否在工作目录中存在解压缓存 (含已启用与已卸载)
+
+        直接探测文件系统而不依赖内存缓存, 避免状态与磁盘实际情况不一致
+        """
+        for name in (SHA, f"{K.DISABLED}-{SHA}"):
+            try:
+                if os.path.isdir(os.path.join(core.userenv.directory.work_mods, name)):
+                    return True
+
+            except Exception:
+                return False
+
+        return False
+
+
     def refresh(self):
         core.log.info("刷新 Mods 管理索引缓存...", L.MODULE_MODS_MANAGE)
         self.clear()
@@ -281,7 +347,8 @@ class ModsManage (object):
     def load(self, SHA: str) -> None:
         core.log.debug(f"加载 Mod {SHA}", L.MODULE_MODS_MANAGE)
         with self.__call_lock:
-            object_ = core.module.mods_index.get_item(SHA)['object']
+            item = core.module.mods_index.get_item(SHA)
+            object_ = item['object']
 
             # 如果 SHA 已经被加载则不做任何操作
             if SHA == self.__table_loads.get(object_, None):
@@ -294,24 +361,33 @@ class ModsManage (object):
                 new_path = os.path.join(core.userenv.directory.work_mods, SHA)
                 os.rename(old_path, new_path)
 
-            # 如果 SHA 不存在则从资源解压
+            # 如果 SHA 不存在则从资源部署
             else:
                 from_file = os.path.join(core.env.directory.resources.mods, SHA)
                 to_path = os.path.join(core.userenv.directory.work_mods, SHA)
 
-                core.external.x7z(from_file, to_path)
+                mod_type = str(item.get(K.INDEX.TYPE, '')).lower()
+
+                # 单文件形式的 Mod (例如 .ini) 无需解压, 直接复制到工作目录
+                if mod_type in K.MOD_TYPE.PLAIN:
+                    _deploy_plain_mod(from_file, to_path, item.get(K.INDEX.NAME, ''), mod_type, SHA)
+
+                else:
+                    core.external.x7z(from_file, to_path)
 
             # 卸载冲突对象的 SHA Mod
-            try: self.unload(object_)
+            # 由本方法统一发出 MOD_LOADED 事件, 无需 unload 重复通知
+            try: self.unload(object_, _notify=False)
             except Exception: ...
 
             # 更新缓存
             self.__table_loads[object_] = SHA
 
-            return None
+        core.construct.event.set_event(E.MOD_LOADED)
+        return None
 
 
-    def unload(self, object_: str) -> None:
+    def unload(self, object_: str, _notify: bool = True) -> None:
         core.log.debug(f"卸载 Mod {object_}", L.MODULE_MODS_MANAGE)
         with self.__call_lock:
             SHA = self.__table_loads.get(object_, None)
@@ -335,11 +411,45 @@ class ModsManage (object):
             finally:
                 del self.__table_loads[object_]
 
+        # 卸载只是重命名目录, 解压缓存依然保留
+        if _notify: core.construct.event.set_event(E.MOD_UNLOADED)
+        return None
+
 
     def remove(self, SHA: str) -> None:
         with self.__call_lock:
             target = os.path.join(core.userenv.directory.work_mods, SHA)
             shutil.rmtree(target)
+
+
+def _safe_filename(name: str, default: str) -> str:
+    """将任意文本转换为安全的文件名主干 (不含扩展名)"""
+    text = ''.join('_' if char in '\\/:*?"<>|' else char for char in str(name))
+    text = ''.join(char for char in text if char.isprintable()).strip(' .')
+    if not text: return default
+    return text[:64].strip(' .') or default
+
+
+def _deploy_plain_mod(from_file: str, to_path: str, name: str, mod_type: str, SHA: str) -> None:
+    """部署单文件形式的 Mod
+
+    归档形式的 Mod 由 7zip 解压出目录结构, 而单文件形式的 Mod (例如 .ini)
+    在 resources/mods 中就是文件本体, 只需要在工作目录中建立同名文件夹并复制进去
+    """
+    # 与 7zip 解压失败时的行为保持一致: 不抛出异常, 仅记录日志
+    if not os.path.isfile(from_file):
+        core.log.error(f"部署单文件 Mod 失败: 找不到 Mod 文件 {from_file}", L.MODULE_MODS_MANAGE)
+        return
+
+    filename = f"{_safe_filename(name, SHA)}.{mod_type}"
+    core.log.debug(f"部署单文件 Mod {SHA} -> {filename}", L.MODULE_MODS_MANAGE)
+
+    try:
+        os.makedirs(to_path, exist_ok=True)
+        shutil.copyfile(from_file, os.path.join(to_path, filename))
+
+    except Exception as e:
+        core.log.error(f"部署单文件 Mod 失败 {SHA} {e.__class__} {e}", L.MODULE_MODS_MANAGE)
 
 
 def _read_class_order() -> list[str]:

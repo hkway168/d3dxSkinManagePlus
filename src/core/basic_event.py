@@ -15,7 +15,9 @@ def initial():
     core.construct.event.register(E.THUMBNAIL_LOADED, update_all_list)
 
     core.construct.event.register(E.MOD_LOADED, update_objects_list)
+    core.construct.event.register(E.MOD_LOADED, update_choices_list)
     core.construct.event.register(E.MOD_UNLOADED, update_objects_list)
+    core.construct.event.register(E.MOD_UNLOADED, update_choices_list)
 
     core.construct.event.register(E.WINDOW_MODS_MANAGE_TS_CLASS, update_objects_list)
     core.construct.event.register(E.WINDOW_MODS_MANAGE_TS_OBJECT, update_choices_list)

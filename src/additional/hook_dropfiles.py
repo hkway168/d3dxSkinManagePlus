@@ -6,6 +6,7 @@ import threading
 
 # project
 import core
+from constant import *
 
 # self
 from . import add_mod
@@ -18,7 +19,8 @@ code2 = 'utf-8'
 
 rule_single = [
     (add_preview.IMAGE_SUFFIXES, add_preview.add_preview, False),
-    (['.zip', '.rar', '.7z'], add_mod.add_mod_is_file, True)
+    (K.MOD_TYPE.ARCHIVE_SUFFIXES, add_mod.add_mod_is_file, True),
+    (K.MOD_TYPE.PLAIN_SUFFIXES, add_mod.add_mod_is_file, True)
 ]
 
 

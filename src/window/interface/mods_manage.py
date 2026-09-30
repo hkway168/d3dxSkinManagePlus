@@ -9,6 +9,15 @@ from .. import dpi
 
 CMD_UNLOAD = "--X--"
 
+# 选择列表的状态着色标签
+TAG_LOADED = "--state-loaded--"
+TAG_CACHED = "--state-cached--"
+
+# 状态配色 (绿色 = 正在使用, 黄色 = 已解压缓存)
+# 深色与浅色主题分别取值, 以保证在两种背景下都有足够对比度
+COLOR_STATE_DARK = {TAG_LOADED: "#4ade80", TAG_CACHED: "#fbbf24"}
+COLOR_STATE_LIGHT = {TAG_LOADED: "#15803d", TAG_CACHED: "#a16207"}
+
 
 class ModsManage(object):
     def install(self, *args, **kwds):
@@ -105,6 +114,9 @@ class ModsManage(object):
         # _alt_set(interface.mods_manage.treeview_choices, T.ANNOTATION_MANAGE_CHOICES)
         _alt_set(self.entry_search, T.ANNOTATION_MANAGE_SEARCH, 1)
 
+        # 此时主题已经应用完成, 可以取到主题明暗类型
+        self.apply_choices_tag_style()
+
 
     def __init__(self, master):
         self.master = master
@@ -121,6 +133,32 @@ class ModsManage(object):
 
     def sbin_clear_treeview_choices(self):
         self.treeview_choices.delete(*self.treeview_choices.get_children())
+
+
+    def apply_choices_tag_style(self):
+        """应用选择列表的状态配色, 跟随当前主题明暗 (切换主题后需要重新调用)"""
+        try: theme_type = core.window.style.theme.type
+        except Exception: theme_type = "dark"
+
+        table = COLOR_STATE_LIGHT if theme_type == "light" else COLOR_STATE_DARK
+
+        try:
+            for tag, color in table.items():
+                self.treeview_choices.tag_configure(tag, foreground=color)
+
+        except Exception:
+            core.log.warn("选择列表状态配色应用失败", L.WINDOS_MODS_MANAGE)
+
+
+    def sbin_get_choices_state_tag(self, SHA: str) -> str | None:
+        """获取 Mod 的状态标签
+
+        正在使用 (已加载且启用) -> TAG_LOADED
+        仅存在解压缓存 (已卸载但未清理) -> TAG_CACHED
+        """
+        if core.module.mods_manage.is_loaded_sha(SHA): return TAG_LOADED
+        if core.module.mods_manage.is_cached_sha(SHA): return TAG_CACHED
+        return None
 
 
     def sbin_update_preview(self, SHA: str | None = ...) -> None:
@@ -258,7 +296,7 @@ class ModsManage(object):
                 tree.insert(
                     "", index, class_,
                     text=f"{class_}\n[{amount}]",
-                    tags=(class_),
+                    tags=(class_, ),
                     image=core.window.treeview_thumbnail.get(class_)
                 )
 
@@ -299,7 +337,7 @@ class ModsManage(object):
                     object_name,
                     text=f"{object_name}\n[{local_}/{all_}]",
                     values=value,
-                    tags=object_name,
+                    tags=(object_name, ),
                     image=core.window.treeview_thumbnail.get(object_name)
                 )
                 self.treeview_objects.move(object_name, "", index)
@@ -309,7 +347,7 @@ class ModsManage(object):
                     "", index, object_name,
                     text=f"{object_name}\n[{local_}/{all_}]",
                     values=value,
-                    tags=object_name,
+                    tags=(object_name, ),
                     image=core.window.treeview_thumbnail.get(object_name)
                 )
 
@@ -347,24 +385,28 @@ class ModsManage(object):
             a = "-" if not a else a
             atags = " ".join(item.get("tags", []))
 
+            # 状态标签决定名称的显示颜色
+            state = self.sbin_get_choices_state_tag(SHA)
+            item_tags = (SHA, ) if state is None else (SHA, state)
+
             if SHA in exist_mods_list:
                 self.treeview_choices.item(
                     SHA,
                     text=f"[{grading}] {name}\n{a} {atags}", 
-                    tags=(SHA, )
+                    tags=item_tags
                 )
 
             else:
                 self.treeview_choices.insert(
                     "", index, SHA,
                     text=f"[{grading}] {name}\n{a} {atags}", 
-                    tags=(SHA, )
+                    tags=item_tags
                 )
 
         self.treeview_choices.insert(
             "", 0, CMD_UNLOAD,
             text=f"- [X] 卸载该对象 -",
-            tags=(CMD_UNLOAD)
+            tags=(CMD_UNLOAD, )
         )
 
         # SHA = core.module.mods_manage.get_load_object_sha(object_)
@@ -380,10 +422,11 @@ class ModsManage(object):
         name = self.treeview_choices.item(self.treeview_choices.focus())["text"]
 
         if SHA == CMD_UNLOAD:
-            self.treeview_objects.item(self.treeview_objects.focus(), value=())
-            tags = self.treeview_objects.item(self.treeview_objects.focus())["tags"]
-            if not tags: return None
-            object_ = tags[0]
+            # 对象列表的 iid 就是对象名称, 不能用 tags 取值:
+            # tags 传入的是裸字符串, 含空格的对象名会被 Tcl 拆分成多个 tag
+            object_ = self.treeview_objects.focus()
+            if not object_: return None
+            self.treeview_objects.item(object_, value=())
             core.module.mods_manage.unload(object_)
 
         else:

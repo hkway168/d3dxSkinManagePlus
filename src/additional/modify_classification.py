@@ -36,14 +36,6 @@ def _check_classname(classname: str) -> str | None:
     return None
 
 
-def _read_classification_file(classname: str) -> str:
-    try:
-        with open(_classification_path(classname), 'r', encoding='utf-8') as f:
-            return f.read()
-    except Exception:
-        return ''
-
-
 def _write_classification_file(classname: str, content: str) -> None:
     with open(_classification_path(classname), 'w', encoding='utf-8') as f:
         f.write(content)
@@ -475,9 +467,13 @@ class AddObject (_Dialog):
             self.Label_errormsg.config(text="该对象已在分类中")
             return
 
-        content = _read_classification_file(self.classname)
-        if content and not content.endswith('\n'): content += '\n'
-        _write_classification_file(self.classname, content + object_ + '\n')
+        # 一个对象只能属于一个分类, 已在其他分类中时询问是否移动
+        other = core.module.mods_manage.get_object_class(object_)
+        if other is not None and other != self.classname:
+            message = f'对象 "{object_}" 已在分类 "{other}" 中。\n\n一个对象只能属于一个分类，是否将其移动到分类 "{self.classname}"？'
+            if not _askyesno('移动对象', message, parent=self.windows): return
+
+        core.module.mods_manage.set_reference_object_list(self.classname, _reference_objects(self.classname) + [object_])
 
         self.bin_cancel()
         _refresh_in_background()

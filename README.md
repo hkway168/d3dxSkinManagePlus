@@ -83,7 +83,7 @@ buildtools\build.bat [onedir] [nopause]
 1. 在登录界面创建或选择一个用户并登录（每个用户的数据相互独立）。
 2. 进入「环境设置」，选择 3DMigoto 版本，并通过「文件选择工具」选择游戏主程序。
 3. 回到「Mods 管理」，在分类列表右键「添加分类」，在对象列表右键「添加对象」。
-4. 将 Mod 压缩包（`.zip` / `.rar` / `.7z`）或文件夹拖入主窗口，填写 Mod 信息后确定。
+4. 将 Mod 压缩包（`.zip` / `.rar` / `.7z`）、单个 `.ini` 文件或文件夹拖入主窗口，填写 Mod 信息后确定。
 5. 在「选择」列表中双击 Mod 即可加载；选中 Mod 后拖入图片可设置预览图。
 6. 先点击「启动 3DMiGoto 加载器」，再点击「启动游戏」。
 
@@ -94,6 +94,8 @@ buildtools\build.bat [onedir] [nopause]
 将 Mod 压缩包以其 SHA1 值命名储存在 `./resources/mods` 中，并使用索引文件记录 Mod 文件的相关信息。
 
 在加载 Mod 时将压缩包释放到对应用户 3DMigoto 工作目录的 Mods 文件夹（`home/<用户名>/work/Mods`）。
+
+单个 `.ini` 文件形式的 Mod 同样以 SHA1 命名直接储存，加载时无需解压，会被复制到 `home/<用户名>/work/Mods/<SHA1>/` 下。
 
 [文件结构](doc/file-structure.md)
 
