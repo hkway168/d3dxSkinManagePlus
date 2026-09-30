@@ -62,6 +62,8 @@ class AddMods(object):
         self.object_ = self.object_ if self.object_ else ''
 
         self.windows = ttkbootstrap.Toplevel('添加 Mod')
+        # 先隐藏, 待计算好位置后再显示, 避免窗口先出现在默认位置再跳到鼠标附近
+        self.windows.withdraw()
         self.windows.transient(core.window.mainwindow)
         # self.windows.grab_set()
 
@@ -145,10 +147,11 @@ class AddMods(object):
         _alt_set(self.Button_ok, T.ANNOTATION_ADD_MOD_OK, 2)
 
 
-        core.window.mainwindow.update()
+        # 窗口隐藏时 winfo_width 无效, 使用布局请求的尺寸
+        self.windows.update_idletasks()
 
-        width = self.windows.winfo_width()
-        height = self.windows.winfo_height()
+        width = self.windows.winfo_reqwidth()
+        height = self.windows.winfo_reqheight()
 
         _x, _y = win32gui.GetCursorInfo()[2]
 
@@ -161,6 +164,7 @@ class AddMods(object):
         self.windows.geometry(f'+{x}+{y}')
 
         self.windows.resizable(False, False)
+        self.windows.deiconify()
 
         # 如果 SHA 是全新的则根据操作环境推断
 

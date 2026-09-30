@@ -107,6 +107,9 @@ TEXT_HELP = """d3dxSkinManage 使用帮助
         方式一：将完整的游戏截图拖入工具窗口。
         方式二：游戏窗口化运行时，双击工具窗口自动截取游戏画面。
 
+    ● 设置
+        在对象列表中显示没有 Mod 的对象：默认关闭，关闭时本地没有任何 Mod 的对象不在对象列表中显示。
+
 
 七、目录结构
     home\\<用户名>\\
@@ -157,8 +160,7 @@ ANNOTATION_MANAGE_OBJECTS = "\n".join([
 ANNOTATION_MANAGE_CHOICES = "\n".join([
     "左键单击 查看对应 Mod 的预览图",
     "左键双击 加载对应 Mod 至 3DMiGoto",
-    "右键单击 Mod 修改 Mod 信息",
-    "",
+    "右键单击 Mod 修改信息 / 查看、删除缓存文件 / 查看原始文件",
     "左键双击 \"卸载该对象\" 卸载 Mod"
 ])
 
@@ -188,6 +190,12 @@ ANNOTATION_ANNOTATION_LEVEL = """描述提示词数量
 可以适当减少一些操作描述
 
 该项设置立即生效"""
+
+ANNOTATION_SHOW_EMPTY_OBJECTS = """在对象列表中显示没有 Mod 的对象
+关闭时，本地没有任何 Mod 的对象不会出现在对象列表中
+分类后的数量也只统计有 Mod 的对象
+
+默认关闭，该项设置立即生效"""
 
 ANNOTATION_D3DX_VERSION = """点击右侧的下拉箭头或输入框底部唤出下拉菜单
 在下拉菜单中选择需要切换到的版本

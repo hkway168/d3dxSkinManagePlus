@@ -43,6 +43,8 @@ class CreateUserToplevel (object):
         self.value_auto_login = ttkbootstrap.BooleanVar(value=True)
 
         self.windows = ttkbootstrap.Toplevel("创建用户")
+        # 先隐藏, 待计算好位置后再显示, 避免窗口先出现在默认位置再跳到主窗口中央
+        self.windows.withdraw()
         self.windows.transient(core.window.mainwindow)
 
         try:
@@ -119,8 +121,9 @@ class CreateUserToplevel (object):
         """使窗口相对主窗口居中"""
         self.windows.update_idletasks()
 
-        width = self.windows.winfo_width()
-        height = self.windows.winfo_height()
+        # 窗口隐藏时 winfo_width 无效, 使用布局请求的尺寸
+        width = self.windows.winfo_reqwidth()
+        height = self.windows.winfo_reqheight()
 
         try:
             main = core.window.mainwindow
@@ -136,6 +139,7 @@ class CreateUserToplevel (object):
 
         self.windows.geometry(f"+{x}+{y}")
         self.windows.minsize(width, height)
+        self.windows.deiconify()
 
 
     def bin_choice_picture(self, *args):

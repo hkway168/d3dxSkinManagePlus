@@ -256,7 +256,8 @@ class ModsManage (object):
         """返回分类下的对象列表
 
         顺序与分类参照文件一致 (可在 "管理子对象" 中调整),
-        "未分类" 按名称排序
+        "未分类" 按名称排序;
+        未开启 "显示没有 Mod 的对象" 时, 仅返回本地已有 Mod 的对象
         """
         local = self.__classification.get(class_, [])
         if class_ == UNCLASSIFIED:
@@ -264,6 +265,10 @@ class ModsManage (object):
 
         result = list(dict.fromkeys(self.__reference_classification.get(class_, [])))
         result += sorted(set(local) - set(result))
+
+        if not core.env.configuration.show_empty_objects:
+            result = [x for x in result if self.__local_object_sha_lst.get(x)]
+
         return result
 
 

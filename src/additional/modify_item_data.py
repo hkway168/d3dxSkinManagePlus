@@ -31,6 +31,8 @@ class ModifyItemData (object):
         self.SHA = SHA
 
         self.windows = ttkbootstrap.Toplevel('修改 SHA 信息 - new construction options')
+        # 先隐藏, 待计算好位置后再显示, 避免窗口先出现在默认位置再跳到鼠标附近
+        self.windows.withdraw()
         self.windows.transient(core.window.mainwindow)
         # self.windows.grab_set()
         # self.windows = tkinter.Toplevel(core.window.mainwindow)
@@ -125,10 +127,11 @@ class ModifyItemData (object):
         _alt_set(self.Button_remove, T.ANNOTATION_MODIFY_ITEM_REMOVE, 1)
         _alt_set(self.Button_delete, T.ANNOTATION_MODIFY_ITEM_DELETE, 1)
 
-        self.windows.update()
+        # 窗口隐藏时 winfo_width 无效, 使用布局请求的尺寸
+        self.windows.update_idletasks()
 
-        width = self.windows.winfo_width()
-        height = self.windows.winfo_height()
+        width = self.windows.winfo_reqwidth()
+        height = self.windows.winfo_reqheight()
 
         sw = self.windows.winfo_screenwidth()
         sh = self.windows.winfo_screenheight()
@@ -149,6 +152,7 @@ class ModifyItemData (object):
 
         self.windows.geometry(f'+{x}+{y}')
         self.windows.resizable(False, False)
+        self.windows.deiconify()
 
 
         data = core.module.mods_index.get_item(self.SHA)

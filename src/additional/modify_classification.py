@@ -69,11 +69,14 @@ def _refresh_in_background():
 
 
 def _place_near_cursor(windows) -> None:
-    """将窗口居中放置在鼠标附近, 并禁止调整大小"""
+    """将窗口居中放置在鼠标附近, 并禁止调整大小
+
+    窗口创建后处于隐藏状态, 定位完成后再显示, 避免先出现在默认位置再跳到鼠标附近
+    """
     windows.update_idletasks()
 
-    width = windows.winfo_width()
-    height = windows.winfo_height()
+    width = windows.winfo_reqwidth()
+    height = windows.winfo_reqheight()
 
     _x, _y = win32gui.GetCursorInfo()[2]
 
@@ -82,6 +85,7 @@ def _place_near_cursor(windows) -> None:
 
     windows.geometry(f'+{x}+{y}')
     windows.resizable(False, False)
+    windows.deiconify()
 
 
 def _askyesno(title: str, message: str, parent=None) -> bool:
@@ -103,6 +107,7 @@ class _Dialog (object):
 
         try:
             self.windows = ttkbootstrap.Toplevel(self.title)
+            self.windows.withdraw()
             self.windows.transient(core.window.mainwindow)
 
             try:
