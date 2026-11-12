@@ -33,3 +33,7 @@ def env_config_amend():
     # 头像名称匹配算法, 默认使用与旧版本一致的 "名称包含" 匹配
     if core.env.configuration.thumbnail_approximate_algorithm not in K.APPROXIMATE.ALL:
         core.env.configuration.thumbnail_approximate_algorithm = K.APPROXIMATE.KEY_IN_ONLY
+
+    # 运行 fixtool 中 .py 修复脚本的 Python 解释器路径, 留空则自动查找 (py 启动器 / PATH 中的 python)
+    if not isinstance(core.env.configuration.fixtool_python, str):
+        core.env.configuration.fixtool_python = ""

@@ -18,6 +18,7 @@ from constant import *
 from window.popup_menu import PopupMenu
 
 from . import unload_mods
+from . import fix_mod_script
 
 
 class selfstatus (object):
@@ -583,6 +584,7 @@ class ChoicesContextMenu (object):
             self.menu.add_command(label='删除缓存文件', command=lambda: delete_cache(iid), enabled=cache_path is not None)
             self.menu.add_command(label='查看原始文件', command=lambda: open_in_explorer(source_path), enabled=source_path is not None)
             self.menu.add_command(label='应用到原始文件', command=lambda: apply_cache_to_source(iid), enabled=cache_path is not None and source_path is not None)
+            self.menu.add_command(label='使用脚本修复 Mod', command=lambda: fix_mod_script.fix_with_script(iid), enabled=cache_path is not None)
             unload_mods.add_to_menu(self.menu, None, with_class=False)
 
         # 插件追加的菜单项 (treeview_choices_menu.add_label)
