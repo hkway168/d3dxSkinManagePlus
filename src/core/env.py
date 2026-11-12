@@ -11,16 +11,8 @@ from .structure import *
 
 
 PROJECT = "d3dxSkinManage"
-AUTHOR = "numlinka"
-
-VERSION_CODE = 1_05_06_000
-VERSION_TYPE = ""
-VERSION_NAME = "1.5.6"
-
-MAIN_TITLE = f"{PROJECT} v{VERSION_NAME} -by {AUTHOR}"
 
 CODE_NAME = "kamisa"
-
 
 
 class __base (Directory):
@@ -78,11 +70,6 @@ except Exception:
 
 __all__ = [
     "PROJECT",
-    "AUTHOR",
-    "VERSION_CODE",
-    "VERSION_TYPE",
-    "VERSION_NAME",
-    "MAIN_TITLE",
     "CODE_NAME",
     "base",
     "directory",

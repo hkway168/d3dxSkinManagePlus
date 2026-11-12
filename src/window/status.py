@@ -44,7 +44,7 @@ class Status (object):
     def bin_logout(self, *args):
         answer = core.window.messagebox.askyesno(
             title = "退出用户",
-            message = "是否退出当前用户并返回登录界面\n未完成的下载任务将被中断")
+            message = "是否退出当前用户并返回登录界面？\n退出前将自动保存索引数据和用户配置")
 
         if not answer: return None
 

@@ -78,7 +78,6 @@ class ModifyItemData (object):
 
         self.Button_ok = ttkbootstrap.Button(self.windows, text='保存', width=10, bootstyle="info-outline", command=self.bin_ok)
         self.Button_cancel = ttkbootstrap.Button(self.windows, text='取消', width=10, bootstyle="success-outline", command=self.bin_cancel)
-        self.Button_remove = ttkbootstrap.Button(self.windows, text='删除', width=10, bootstyle="warning-outline", command=self.bin_remove)
         self.Button_delete = ttkbootstrap.Button(self.windows, text='完全移除', width=10, bootstyle="danger-outline", command=self.bin_delete)
 
         self.Label_except = ttkbootstrap.Label(self.windows, anchor='w', text='', foreground='red')
@@ -112,7 +111,6 @@ class ModifyItemData (object):
 
         self.Button_ok.pack(side='right', padx=10, pady=(0, 10))
         self.Button_cancel.pack(side='right', padx=(10, 0), pady=(0, 10))
-        self.Button_remove.pack(side='right', padx=(10, 0), pady=(0, 10))
         self.Button_delete.pack(side='right', padx=(10, 0), pady=(0, 10))
 
         self.Label_except.pack(side='right', fill='x', expand=True, padx=(10, 0), pady=(0, 10))
@@ -129,7 +127,6 @@ class ModifyItemData (object):
         _alt_set(self.Entry_tags, T.ANNOTATION_TAGS, 2)
         _alt_set(self.Button_ok, T.ANNOTATION_MODIFY_ITEM_OK, 2)
         _alt_set(self.Button_cancel, T.ANNOTATION_MODIFY_ITEM_CANCEL, 2)
-        _alt_set(self.Button_remove, T.ANNOTATION_MODIFY_ITEM_REMOVE, 1)
         _alt_set(self.Button_delete, T.ANNOTATION_MODIFY_ITEM_DELETE, 1)
 
         # 窗口隐藏时 winfo_width 无效, 使用布局请求的尺寸
@@ -236,27 +233,21 @@ class ModifyItemData (object):
 
 
     def bin_delete(self, *args):
-        core.module.mods_manage.unload(self.old_object)
+        """完全移除: 删除解压缓存、原始文件和索引数据"""
+        message = ('确定完全移除该 Mod?\n\n'
+                   '将删除: 解压缓存、原始文件、索引数据 (名称 / 作者 / 标签等)\n'
+                   '移除后该 Mod 不会再出现在列表中, 此操作不可撤销')
+        if not core.window.messagebox.askyesno(title='完全移除', message=message, parent=self.windows): return
 
-        core.module.mods_index.item_data_del(self.SHA)
+        error = remove_mod_files(self.SHA, self.old_object)
+        if error is not None:
+            core.construct.event.set_event(E.MODS_INDEX_UPDATE)
+            core.window.messagebox.showerror(title='完全移除失败', message=error, parent=self.windows)
+            return
 
-        try:
-            os.remove(os.path.join(core.env.directory.resources.mods, self.SHA))
-
-        except Exception:
-            ...
-
-        self.bin_cancel()
-
-
-    def bin_remove(self, *args):
-        core.module.mods_manage.unload(self.old_object)
-
-        try:
-            os.remove(os.path.join(core.env.directory.resources.mods, self.SHA))
-
-        except Exception:
-            ...
+        # item_data_del 内部会触发 MODS_INDEX_UPDATE 刷新列表
+        if core.module.mods_index.item_data_del(self.SHA) is False:
+            core.construct.event.set_event(E.MODS_INDEX_UPDATE)
 
         self.bin_cancel()
 
@@ -328,6 +319,35 @@ def delete_cache(SHA: str):
 
     finally:
         core.construct.event.set_event(E.MOD_UNLOADED)
+
+
+def remove_mod_files(SHA: str, object_: str) -> str | None:
+    """删除 Mod 的解压缓存 (SHA / disabled-SHA) 和原始文件, 失败时返回错误信息
+
+    先删缓存再删原始文件: 缓存被占用 (例如游戏正在运行) 时直接中止, 原始文件和索引保持不变
+    只有该 SHA 正在使用时才卸载, 不会影响同一对象上正在使用的其他 Mod
+    """
+    from window.interface.tools.cache_cleanup import remove_path, describe_error
+
+    mods_manage = core.module.mods_manage
+    if mods_manage.get_load_object_sha(object_) == SHA:
+        mods_manage.unload(object_, _notify=False)
+
+    work_mods = core.userenv.directory.work_mods
+    targets = [os.path.join(work_mods, name) for name in (SHA, f'{K.DISABLED}-{SHA}')]
+    targets.append(os.path.join(core.env.directory.resources.mods, SHA))
+
+    for path in targets:
+        try:
+            remove_path(path)
+
+        except Exception as e:
+            if not os.path.lexists(path): continue
+            core.log.error(f"删除 Mod 文件失败 {path} {e.__class__} {e}")
+            return (f'{describe_error(e)}\n{path}\n\n'
+                    '请关闭游戏或正在访问该文件的程序 (例如资源管理器) 后重试')
+
+    return None
 
 
 # 应用缓存到原始文件的操作互斥锁, 防止重复执行

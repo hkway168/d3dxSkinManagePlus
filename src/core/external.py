@@ -38,3 +38,27 @@ def pack_dir_7z(source_dir: str, to_file: str) -> bool:
     except Exception:
         return False
     return task.returncode == 0
+
+
+def _view(path: str, rule_key: str, default_rule: str):
+    import win32api
+
+    configuration = env.configuration
+    program = configuration.view_explorer_path if isinstance(configuration.view_explorer_path, str) else "explorer"
+    rule = getattr(configuration, rule_key)
+    if not isinstance(rule, str): rule = default_rule
+
+    # 路径可能含空格, 规则中未自带引号时自动加上
+    path = os.path.normpath(path)
+    argument = rule.replace("{path}", path) if '"{path}"' in rule else rule.replace("{path}", f'"{path}"')
+    win32api.ShellExecute(0, "open", program, argument, None, 1)
+
+
+def view_file(path: str):
+    """在文件管理器中定位文件 (程序和参数规则可在全局配置文件中修改)"""
+    _view(path, "view_file_rule", "/select,{path}")
+
+
+def view_directory(path: str):
+    """在文件管理器中打开目录 (程序和参数规则可在全局配置文件中修改)"""
+    _view(path, "view_directory_rule", "{path}")

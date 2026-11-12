@@ -144,8 +144,7 @@ ANNOTATION_LOGIN = """点一下，玩一年，皮肤不花一分钱。
 一刀满级绿色版，账号回收秒到账。"""
 
 ANNOTATION_LOGOUT = """点击退出当前用户并返回登录界面
-退出前会自动保存索引数据和用户配置
-未完成的下载任务将被中断"""
+退出前会自动保存索引数据和用户配置"""
 
 ANNOTATION_MANAGE_CLASSIFICATION = "\n".join([
     "左键单击 查看对应类别的对象",
@@ -242,5 +241,4 @@ ANNOTATION_ADD_MOD_OK = "确认导入该 Mod"
 
 ANNOTATION_MODIFY_ITEM_OK = "修改数据并保存"
 ANNOTATION_MODIFY_ITEM_CANCEL = "什么都不做"
-ANNOTATION_MODIFY_ITEM_REMOVE = "删除 Mod 文件"
-ANNOTATION_MODIFY_ITEM_DELETE = "删除 Mod 文件和索引数据"
+ANNOTATION_MODIFY_ITEM_DELETE = "删除 Mod 文件、解压缓存和索引数据"

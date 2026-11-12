@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
-"""缓存清理工具 (移植自原版 tools.cache_cleanup)
+"""缓存清理工具 (移植自原版 tools.cache_cleanup, 并合并原版插件 cache_clearup / temp_cache_clearup 的功能)
+
+临时文件: resources\\cache 中残留的临时压缩包 / 图片 (添加 Mod、应用修改等操作异常中断时留下)
 
 扫描 work\\Mods 中已卸载 Mod 留下的解压缓存 (disabled-SHA 文件夹), 按三档统计并清理:
 - 无效缓存:   SHA 已不在 Mod 数据中 (例如 Mod 已被删除)
@@ -7,12 +9,17 @@
 - 常用缓存:   本地有原始文件, 清理后下次加载需要重新解压
 
 正在使用的 Mod (未加禁用标识的文件夹) 不会被扫描, 也不会被清理。
+删除失败的项目会列出原因, 并可在资源管理器中定位后手动删除。
 """
 
 # std
 import os
+import sys
+import stat
+import time
 import shutil
 import threading
+import subprocess
 
 # site
 import ttkbootstrap
@@ -21,6 +28,7 @@ import ttkbootstrap
 import core
 from constant import *
 from window import dialogs
+from window import dpi
 
 
 class containe ():
@@ -28,15 +36,21 @@ class containe ():
     operation = threading.Lock()
 
 
+TEMP = "temp"
 INVALID = "invalid"
 RARELY = "rarely"
 OFTEN = "often"
 
 LEVELS = (
+    (TEMP, "临时文件", "操作中断时残留的临时压缩包和图片, 可放心清理", "success-outline"),
     (INVALID, "无效缓存", "Mod 数据中已不存在的 SHA, 可放心清理", "success-outline"),
     (RARELY, "不常用缓存", "本地没有原始文件的 Mod", "warning-outline"),
     (OFTEN, "常用缓存", "本地有原始文件, 清理后再次加载需要重新解压", "danger-outline"),
 )
+
+# 临时文件: 只处理这些后缀, 且跳过最近修改过的文件 (可能正在被添加 Mod 等操作使用)
+TEMP_SUFFIXES = {".7z", ".png", ".jpg", ".jpeg", ".bmp", ".gif", ".webp"}
+TEMP_MIN_AGE = 10 * 60
 
 
 def get_folder_size(folder_path: str) -> int:
@@ -67,27 +81,166 @@ def classify(SHA: str, all_sha: set) -> str:
     return INVALID
 
 
+def muted_foreground(ratio: float = 0.65) -> str:
+    """按当前主题生成比正文略淡的文字颜色 (前景色向背景色混合)"""
+    try:
+        colors = ttkbootstrap.Style().colors
+        fg, bg = colors.fg.lstrip("#"), colors.bg.lstrip("#")
+        mix = [round(int(fg[i:i + 2], 16) * ratio + int(bg[i:i + 2], 16) * (1 - ratio)) for i in (0, 2, 4)]
+        return "#%02x%02x%02x" % tuple(mix)
+    except Exception:
+        return "gray"
+
+
+def is_safe_target(key: str, path: str) -> bool:
+    """删除前再次确认目标在允许的范围内"""
+    path = os.path.abspath(path)
+    parent, name = os.path.dirname(path), os.path.basename(path)
+
+    if key == TEMP:
+        return (parent == os.path.abspath(core.env.directory.resources.cache)
+                and os.path.splitext(name)[1].lower() in TEMP_SUFFIXES
+                and not os.path.isdir(path))
+
+    return parent == os.path.abspath(core.userenv.directory.work_mods) and parse_disabled_sha(name) is not None
+
+
+def _on_remove_error(func, path, _):
+    """去掉只读属性后重试一次; 目标已不存在视为成功"""
+    if not os.path.lexists(path): return
+    os.chmod(path, stat.S_IWRITE)
+    func(path)
+
+
+def remove_path(path: str):
+    """删除文件或文件夹, 目标已不存在时直接返回"""
+    if not os.path.lexists(path): return
+
+    if os.path.isdir(path) and not os.path.islink(path):
+        if sys.version_info >= (3, 12): shutil.rmtree(path, onexc=_on_remove_error)
+        else: shutil.rmtree(path, onerror=_on_remove_error)
+        return
+
+    try:
+        os.remove(path)
+    except PermissionError:
+        os.chmod(path, stat.S_IWRITE)
+        os.remove(path)
+
+
+def describe_error(e: Exception) -> str:
+    if isinstance(e, PermissionError): return "权限不足或被占用"
+    return f"{e.__class__.__name__}: {e}"
+
+
+def open_in_explorer(path: str):
+    """在资源管理器中定位目标, 目标不存在时打开其所在目录"""
+    path = os.path.normpath(path)
+    if os.path.exists(path):
+        subprocess.Popen(f'explorer /select,"{path}"')
+        return
+
+    parent = os.path.dirname(path)
+    if os.path.isdir(parent): os.startfile(parent)
+
+
 class CountItemFrame (ttkbootstrap.Frame):
     def __init__(self, master, description: str):
         super().__init__(master)
 
-        self.label_description = ttkbootstrap.Label(self, text=description, anchor="w")
-        self.label_count = ttkbootstrap.Label(self, text="项目数量: -", anchor="w")
-        self.label_size = ttkbootstrap.Label(self, text="占用空间: -", anchor="w")
+        self.label_description = ttkbootstrap.Label(self, text=description, anchor="w", foreground=muted_foreground())
+        self.label_description.pack(side="top", fill="x", padx=10, pady=(10, 0))
 
-        self.label_description.pack(side="top", fill="x", padx=10, pady=(5, 0))
-        self.label_count.pack(side="top", fill="x", padx=10)
-        self.label_size.pack(side="top", fill="x", padx=10, pady=(0, 5))
+        frame_row = ttkbootstrap.Frame(self)
+        frame_row.pack(side="top", fill="x")
+
+        frame_prefix = ttkbootstrap.Frame(frame_row)
+        frame_suffix = ttkbootstrap.Frame(frame_row)
+        frame_counts = ttkbootstrap.Frame(frame_row)
+
+        frame_prefix.pack(side="left", fill="y", padx=10, pady=(5, 10))
+        frame_suffix.pack(side="right", fill="y", padx=10, pady=(5, 10))
+        frame_counts.pack(side="top", fill="x", pady=(5, 10))
+
+        ttkbootstrap.Label(frame_prefix, text="项目数量:").pack(side="top", fill="x")
+        ttkbootstrap.Label(frame_prefix, text="占用空间:").pack(side="top", fill="x")
+
+        ttkbootstrap.Label(frame_suffix, text="Items").pack(side="top", fill="x")
+        ttkbootstrap.Label(frame_suffix, text="MiBytes").pack(side="top", fill="x")
+
+        self.label_count = ttkbootstrap.Label(frame_counts, text="-", anchor="e", width=32)
+        self.label_size = ttkbootstrap.Label(frame_counts, text="-", anchor="e", width=32)
+        self.label_count.pack(side="top", fill="x")
+        self.label_size.pack(side="top", fill="x")
 
 
     def set_value(self, count: int | None = None, size: int | None = None):
         if count is None:
-            self.label_count.config(text="项目数量: -")
-            self.label_size.config(text="占用空间: -")
+            self.label_count.config(text="-")
+            self.label_size.config(text="-")
             return
 
-        self.label_count.config(text=f"项目数量: {count} 个")
-        self.label_size.config(text=f"占用空间: {size / 1024 / 1024:.2f} MiB")
+        self.label_count.config(text=f"{count}")
+        self.label_size.config(text=f"{size / 1024 / 1024:.2f}")
+
+
+class FailedDialog (object):
+    """列出删除失败的项目, 可在资源管理器中定位后手动删除"""
+    def __init__(self, parent, title: str, failed: list[tuple[str, str]]):
+        self.failed = failed
+
+        self.window = ttkbootstrap.Toplevel(f"{title}清理失败")
+        self.window.withdraw()
+        self.window.transient(parent)
+        self.window.minsize(dpi.scale(480), dpi.scale(240))
+        dialogs._set_icon(self.window)
+
+        tips = (f"以下 {len(failed)} 个项目未能删除, 通常是文件被占用 (例如游戏正在运行) 或权限不足。\n"
+                "可以关闭占用程序后重新清理, 或在资源管理器中定位后手动删除。")
+        ttkbootstrap.Label(self.window, text=tips, anchor="w", justify="left").pack(side="top", fill="x", padx=10, pady=10)
+
+        frame_option = ttkbootstrap.Frame(self.window)
+        frame_option.pack(side="bottom", fill="x", padx=10, pady=(0, 10))
+
+        frame_list = ttkbootstrap.Frame(self.window)
+        frame_list.pack(side="top", fill="both", expand=True, padx=10, pady=(0, 10))
+
+        self.treeview = ttkbootstrap.Treeview(frame_list, columns=("name", "reason"), show="headings",
+                                              selectmode="browse", height=min(max(len(failed), 3), 10))
+        self.treeview.heading("name", text="名称", anchor="w")
+        self.treeview.heading("reason", text="原因", anchor="w")
+        self.treeview.column("name", width=dpi.scale(420), anchor="w")
+        self.treeview.column("reason", width=dpi.scale(220), anchor="w")
+
+        scrollbar = ttkbootstrap.Scrollbar(frame_list, orient="vertical", command=self.treeview.yview)
+        self.treeview.config(yscrollcommand=scrollbar.set)
+        scrollbar.pack(side="right", fill="y")
+        self.treeview.pack(side="left", fill="both", expand=True)
+
+        for index, (path, reason) in enumerate(failed):
+            self.treeview.insert("", "end", iid=str(index), values=(os.path.basename(path), reason))
+
+        if failed: self.treeview.selection_set("0")
+        self.treeview.bind("<Double-1>", self.bin_open)
+
+        ttkbootstrap.Button(frame_option, text="关闭", width=10, bootstyle="warning-outline", cursor="hand2",
+                            command=self.window.destroy).pack(side="right")
+        ttkbootstrap.Button(frame_option, text="打开文件所在目录", bootstyle="info-outline", cursor="hand2",
+                            command=self.bin_open).pack(side="right", padx=(0, 10))
+
+        dialogs.center_window(self.window, parent)
+        self.window.deiconify()
+        self.window.focus_set()
+
+
+    def bin_open(self, *_):
+        selection = self.treeview.selection()
+        if not selection: return
+        path = self.failed[int(selection[0])][0]
+
+        try: open_in_explorer(path)
+        except Exception as e:
+            core.window.messagebox.showerror(title="打开失败", message=f"{e.__class__.__name__}: {e}", parent=self.window)
 
 
 class CacheCleanup (object):
@@ -109,9 +262,9 @@ class CacheCleanup (object):
         self.items: dict[str, CountItemFrame] = {}
         self.buttons: dict[str, ttkbootstrap.Button] = {}
 
-        for key, title, description, style in LEVELS:
+        for index, (key, title, description, style) in enumerate(LEVELS):
             frame = ttkbootstrap.LabelFrame(self.window, text=title)
-            frame.pack(side="top", fill="x", padx=10, pady=(10, 0))
+            frame.pack(side="top", fill="x", padx=10, pady=(10 if index == 0 else 0, 10))
 
             button = ttkbootstrap.Button(frame, text="清理", width=10, bootstyle=style, cursor="hand2",
                                          command=lambda k=key: self.bin_clean(k))
@@ -124,12 +277,12 @@ class CacheCleanup (object):
             self.buttons[key] = button
 
         self.frame_option = ttkbootstrap.Frame(self.window)
-        self.frame_option.pack(side="top", fill="x", padx=10, pady=10)
+        self.frame_option.pack(side="top", fill="x", padx=10, pady=(0, 10))
 
         self.label_status = ttkbootstrap.Label(self.frame_option, text="", anchor="w")
         self.label_status.pack(side="left", fill="x", expand=True)
 
-        self.button_scan = ttkbootstrap.Button(self.frame_option, text="重新扫描", width=12, bootstyle="info-outline",
+        self.button_scan = ttkbootstrap.Button(self.frame_option, text="重新扫描缓存文件", width=30, bootstyle="info-outline",
                                                cursor="hand2", command=self.bin_scan)
         self.button_scan.pack(side="right")
 
@@ -177,32 +330,55 @@ class CacheCleanup (object):
 
     def _task_scan(self):
         data = {key: [] for key, *_ in LEVELS}
-        status = ""
+        errors = []
 
-        try:
-            root = core.userenv.directory.work_mods
-            all_sha = set(core.module.mods_index.get_all_sha_list())
+        for name, scan in (("临时文件", self._scan_temp), ("Mod 缓存", self._scan_work_mods)):
+            try:
+                scan(data)
 
-            for dirname in os.listdir(root):
-                path = os.path.join(root, dirname)
-                if not os.path.isdir(path): continue
+            except Exception as e:
+                core.log.error(f"{name}扫描失败 {e.__class__} {e}", L.WINDOW)
+                errors.append(f"{name}扫描失败: {e}")
 
-                SHA = parse_disabled_sha(dirname)
-                if not SHA: continue
+        self.data = data
+        self.scanned = True
+        containe.operation.release()
+        self._ui(self._refresh_view, "; ".join(errors) or "扫描完成")
 
-                data[classify(SHA, all_sha)].append((path, get_folder_size(path)))
 
-            status = "扫描完成"
+    @staticmethod
+    def _scan_temp(data: dict):
+        root = core.env.directory.resources.cache
+        if not os.path.isdir(root): return
+        now = time.time()
 
-        except Exception as e:
-            core.log.error(f"缓存扫描失败 {e.__class__} {e}", L.WINDOW)
-            status = f"扫描失败: {e}"
+        for name in os.listdir(root):
+            path = os.path.join(root, name)
+            if os.path.splitext(name)[1].lower() not in TEMP_SUFFIXES: continue
 
-        finally:
-            self.data = data
-            self.scanned = True
-            containe.operation.release()
-            self._ui(self._refresh_view, status)
+            try:
+                info = os.stat(path)
+            except OSError:
+                continue
+
+            if not stat.S_ISREG(info.st_mode): continue
+            if now - info.st_mtime < TEMP_MIN_AGE: continue
+            data[TEMP].append((path, info.st_size))
+
+
+    @staticmethod
+    def _scan_work_mods(data: dict):
+        root = core.userenv.directory.work_mods
+        all_sha = set(core.module.mods_index.get_all_sha_list())
+
+        for dirname in os.listdir(root):
+            path = os.path.join(root, dirname)
+            if not os.path.isdir(path): continue
+
+            SHA = parse_disabled_sha(dirname)
+            if not SHA: continue
+
+            data[classify(SHA, all_sha)].append((path, get_folder_size(path)))
 
 
     # ---------------------------------------------- 清理
@@ -227,32 +403,42 @@ class CacheCleanup (object):
         done, failed = 0, []
 
         try:
-            root = os.path.abspath(core.userenv.directory.work_mods)
             for path, _ in list(self.data[key]):
-                # 仅删除 work\Mods 下带禁用标识的文件夹
-                if os.path.dirname(os.path.abspath(path)) != root: continue
-                if parse_disabled_sha(os.path.basename(path)) is None: continue
-
                 try:
-                    shutil.rmtree(path)
+                    # 仅删除允许范围内的目标: work\Mods 下带禁用标识的文件夹 / resources\cache 下的临时文件
+                    if not is_safe_target(key, path): continue
+
+                    # 目标已不存在 (被其他程序或手动删除) 视为已清理
+                    remove_path(path)
                     done += 1
 
                 except Exception as e:
-                    failed.append(os.path.basename(path))
+                    if not os.path.lexists(path):
+                        done += 1
+                        continue
+
+                    failed.append((path, describe_error(e)))
                     core.log.error(f"删除缓存失败 {path} {e.__class__} {e}", L.WINDOW)
 
-            self.data[key] = [x for x in self.data[key] if os.path.isdir(x[0])]
+            self.data[key] = [x for x in self.data[key] if os.path.lexists(x[0])]
 
         finally:
             containe.operation.release()
 
-        status = f"已清理{title} {done} 个" + (f", {len(failed)} 个失败 (可能被占用)" if failed else "")
+        status = f"已清理{title} {done} 个" + (f", {len(failed)} 个失败" if failed else "")
         core.log.info(status, L.WINDOW)
         self._ui(self._refresh_view, status)
+        if failed: self._ui(self._show_failed, title, failed)
 
         # 刷新 Mod 列表中的缓存状态着色
-        try: core.construct.event.set_event(E.MODS_MANAGE_CACHE_REFRESHED)
-        except Exception: ...
+        if key != TEMP:
+            try: core.construct.event.set_event(E.MODS_MANAGE_CACHE_REFRESHED)
+            except Exception: ...
+
+
+    def _show_failed(self, title: str, failed: list[tuple[str, str]]):
+        if not self._alive(): return
+        FailedDialog(self.window, title, failed)
 
 
     def bin_close(self, *_):

@@ -8,7 +8,6 @@ import core
 from constant import *
 from . import ocd_crop
 from . import cache_cleanup
-from . import launch_script
 
 TEXT = """
 强迫症预览图裁剪工具
@@ -25,16 +24,7 @@ TEXT_CACHE_CLEANUP = """
 卸载 Mod 时解压缓存会被保留以加快再次加载
 但这些缓存不会因为 Mod 的删除而删除
 可以通过此工具扫描并清理这些无用的缓存文件
-释放硬盘空间
-"""
-
-TEXT_LAUNCH_SCRIPT = """
-生成启动脚本
-
-让你不再需要通过程序来启动 3DMiGoto
-注意，这里只提供最基础的启动方式
-如果你需要实现更复杂的逻辑
-请自行富化脚本内容
+以及操作中断时残留的临时文件, 释放硬盘空间
 """
 
 TEXT_TAGS_EDIT = """
@@ -61,11 +51,10 @@ class Tools (object):
 
         self.button_ocd_crop = ttkbootstrap.Button(self.frame, text=TEXT, bootstyle="outline", command=self.bin_open_ocd_crop)
         self.button_cache_cleanup = ttkbootstrap.Button(self.frame, text=TEXT_CACHE_CLEANUP, bootstyle="outline", command=self.bin_open_cache_cleanup)
-        self.button_launch_script = ttkbootstrap.Button(self.frame, text=TEXT_LAUNCH_SCRIPT, bootstyle="outline", command=self.bin_open_launch_script)
         self.button_tags_edit = ttkbootstrap.Button(self.frame, text=TEXT_TAGS_EDIT, bootstyle="outline", command=self.bin_open_tags_edit)
 
         # 两列网格排列, 避免低缩放比例下一行放不下
-        buttons = (self.button_ocd_crop, self.button_cache_cleanup, self.button_launch_script, self.button_tags_edit)
+        buttons = (self.button_ocd_crop, self.button_cache_cleanup, self.button_tags_edit)
         for index, button in enumerate(buttons):
             row, column = divmod(index, 2)
             button.grid(row=row, column=column, sticky="nsew", padx=(0 if column == 0 else 10, 0), pady=(0 if row == 0 else 10, 0))
@@ -81,10 +70,6 @@ class Tools (object):
 
     def bin_open_cache_cleanup(self, *_):
         cache_cleanup.CacheCleanup()
-
-
-    def bin_open_launch_script(self, *_):
-        launch_script.LaunchScript()
 
 
     def bin_open_tags_edit(self, *_):

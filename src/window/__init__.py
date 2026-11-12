@@ -87,7 +87,7 @@ def initial():
     style.theme_use(core.env.configuration.style_theme)
     dpi.apply_style(style)
 
-    mainwindow.title(core.env.MAIN_TITLE)
+    mainwindow.title(core.env.PROJECT)
     _sw = mainwindow.winfo_screenwidth()
     _sh = mainwindow.winfo_screenheight()
     _w = min(dpi.scale(1440), _sw - dpi.scale(40))
