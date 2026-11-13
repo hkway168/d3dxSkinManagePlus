@@ -2,7 +2,9 @@
 """使用脚本修复 Mod
 
 从 fixtool 目录选取修复脚本 (*.py) 或由脚本打包的可执行文件 (*.exe),
-以 Mod 的解压缓存目录 (work\\Mods\\SHA 或 disabled-SHA) 为工作目录在新的控制台窗口中运行。
+在新的控制台窗口中以目标目录为工作目录运行:
+    - 修复单个 Mod: Mod 的解压缓存目录 (work\\Mods\\SHA 或 disabled-SHA)
+    - 修复所有 Mod: Mod 根目录 (work\\Mods)
 
 修复脚本通常以当前工作目录为处理对象, 且可能需要交互输入 (例如按回车确认),
 因此不捕获输出, 直接打开独立控制台供用户查看与操作。
@@ -35,7 +37,8 @@ CLOSED_EXIT_CODES = {
     0xC000013A,  # STATUS_CONTROL_C_EXIT
 }
 
-# 正在运行修复脚本的 Mod, 防止对同一缓存目录重复执行
+# 正在运行修复脚本的目标 (Mod SHA 或 ALL_KEY), 防止对同一目录重复执行
+ALL_KEY = '*'
 _running: set[str] = set()
 _running_lock = threading.Lock()
 
@@ -52,6 +55,12 @@ def _get_cache_path(SHA: str) -> str | None:
         path = os.path.abspath(os.path.join(core.userenv.directory.work_mods, name))
         if os.path.isdir(path): return path
     return None
+
+
+def _get_mods_root() -> str | None:
+    try: path = os.path.abspath(core.userenv.directory.work_mods)
+    except Exception: return None
+    return path if os.path.isdir(path) else None
 
 
 def find_python() -> list[str] | None:
@@ -103,17 +112,72 @@ def select_script() -> str | None:
     return os.path.abspath(filepath) if filepath else None
 
 
+def _busy_unlocked(key: str) -> bool:
+    """修复全部与修复单个 Mod 的目录存在包含关系, 两者互斥 (调用方需持有 _running_lock)"""
+    if key == ALL_KEY: return bool(_running)
+    return key in _running or ALL_KEY in _running
+
+
+def _is_busy(key: str) -> bool:
+    with _running_lock: return _busy_unlocked(key)
+
+
+def _busy_error():
+    core.window.messagebox.showerror(title='操作进行中', message='修复脚本仍在运行\n请先关闭上一次的修复窗口')
+
+
+# ================================================================== 菜单入口
 def fix_with_script(SHA: str):
-    """右键菜单入口: 选择脚本并在 Mod 缓存目录中执行"""
+    """Mod 右键菜单: 选择脚本并在该 Mod 的缓存目录中执行"""
     cache_path = _get_cache_path(SHA)
     if cache_path is None:
         core.window.messagebox.showerror(title='缓存不存在', message='该 Mod 没有解压缓存\n请先加载一次该 Mod 以生成缓存')
         return
 
-    with _running_lock:
-        running = SHA in _running
-    if running:
-        core.window.messagebox.showerror(title='操作进行中', message='该 Mod 的修复脚本仍在运行\n请先关闭上一次的修复窗口')
+    message = (
+        '确定使用以下脚本修复该 Mod?\n\n'
+        '脚本: {script}\n'
+        f'目录: {cache_path}\n\n'
+        '脚本将直接修改缓存目录中的文件, 原始文件不受影响\n'
+        '如修复结果不理想, 可删除缓存文件后重新加载以还原\n'
+        '修复满意后可通过 "应用到原始文件" 保存修改'
+    )
+
+    def reload_hint() -> str:
+        if core.module.mods_manage.is_loaded_sha(SHA):
+            return ', 该 Mod 正在使用, 请在游戏中按 F10 重新加载'
+        return ''
+
+    _run(SHA, cache_path, '使用脚本修复Mod', message, reload_hint)
+
+
+def fix_all_with_script():
+    """分类 / 对象右键菜单: 选择脚本并在 Mod 根目录 (work\\Mods) 中执行"""
+    mods_root = _get_mods_root()
+    if mods_root is None:
+        core.window.messagebox.showerror(title='目录不存在', message='Mod 根目录不存在\n请先登录用户并加载 Mod')
+        return
+
+    message = (
+        '确定使用以下脚本修复所有 Mod?\n\n'
+        '脚本: {script}\n'
+        f'目录: {mods_root}\n\n'
+        '脚本将直接修改该目录下所有 Mod 缓存 (包括未加载的) 中的文件, 原始文件不受影响\n'
+        '如修复结果不理想, 可删除对应 Mod 的缓存文件后重新加载以还原'
+    )
+
+    def reload_hint() -> str:
+        if core.module.mods_manage.get_loaded_objects(None):
+            return ', 请在游戏中按 F10 重新加载'
+        return ''
+
+    _run(ALL_KEY, mods_root, '使用脚本修复所有Mod', message, reload_hint)
+
+
+# ================================================================== 执行
+def _run(key: str, cwd: str, title: str, message: str, reload_hint):
+    if _is_busy(key):
+        _busy_error()
         return
 
     script = select_script()
@@ -133,65 +197,57 @@ def fix_with_script(SHA: str):
                     '或改用脚本打包后的 .exe')
         return
 
-    message = (
-        f'确定使用以下脚本修复该 Mod?\n\n'
-        f'脚本: {os.path.basename(script)}\n'
-        f'目录: {cache_path}\n\n'
-        '脚本将直接修改缓存目录中的文件, 原始文件不受影响\n'
-        '如修复结果不理想, 可删除缓存文件后重新加载以还原\n'
-        '修复满意后可通过 "应用到原始文件" 保存修改'
-    )
-    if not core.window.messagebox.askyesno(title='使用脚本修复 Mod', message=message, icon='warning'): return
+    message = message.replace('{script}', os.path.basename(script))
+    if not core.window.messagebox.askyesno(title=title, message=message, icon='warning'): return
 
     with _running_lock:
-        if SHA in _running:
-            core.window.messagebox.showerror(title='操作进行中', message='该 Mod 的修复脚本仍在运行')
-            return
-        _running.add(SHA)
+        busy = _busy_unlocked(key)
+        if not busy: _running.add(key)
+    if busy:
+        _busy_error()
+        return
 
     try:
         process = subprocess.Popen(
-            command, cwd=cache_path,
+            command, cwd=cwd,
             creationflags=getattr(subprocess, 'CREATE_NEW_CONSOLE', 0))
 
     except Exception as e:
-        with _running_lock: _running.discard(SHA)
+        with _running_lock: _running.discard(key)
         core.log.error(f"启动修复脚本失败 {command} {e.__class__} {e}")
         core.window.messagebox.showerror(title='启动失败', message=f'启动修复脚本失败\n{e}')
         return
 
-    core.log.info(f"运行修复脚本 {SHA} {command} cwd={cache_path}")
+    core.log.info(f"运行修复脚本 {key} {command} cwd={cwd}")
     _set_status(f'正在运行修复脚本 {os.path.basename(script)} ...')
 
-    threading.Thread(target=_wait_process, args=(SHA, script, process), daemon=True).start()
+    threading.Thread(target=_wait_process, args=(key, script, process, reload_hint), daemon=True).start()
 
 
-def _wait_process(SHA: str, script: str, process: subprocess.Popen):
+def _wait_process(key: str, script: str, process: subprocess.Popen, reload_hint):
     name = os.path.basename(script)
     try:
         code = process.wait()
 
     except Exception as e:
-        core.log.error(f"等待修复脚本失败 {SHA} {e.__class__} {e}")
+        core.log.error(f"等待修复脚本失败 {key} {e.__class__} {e}")
         _set_status(f'修复脚本 {name} 状态未知: {e}', 2)
         return
 
     finally:
-        with _running_lock: _running.discard(SHA)
+        with _running_lock: _running.discard(key)
 
-    core.log.info(f"修复脚本结束 {SHA} {name} returncode={code}")
+    core.log.info(f"修复脚本结束 {key} {name} returncode={code}")
 
-    reload_hint = ''
-    try:
-        if core.module.mods_manage.is_loaded_sha(SHA): reload_hint = ', 该 Mod 正在使用, 请在游戏中按 F10 重新加载'
-    except Exception: ...
+    try: hint = reload_hint()
+    except Exception: hint = ''
 
     if code == 0:
-        _set_status(f'修复脚本 {name} 已完成{reload_hint}')
+        _set_status(f'修复脚本 {name} 已完成{hint}')
 
     elif (code & 0xFFFFFFFF) in CLOSED_EXIT_CODES:
         # 点击控制台右上角关闭 / Ctrl+C 结束, 无法得知脚本是否已处理完毕, 不视为错误
-        _set_status(f'修复窗口已关闭 ({name}), 请自行确认修复结果{reload_hint}')
+        _set_status(f'修复窗口已关闭 ({name}), 请自行确认修复结果{hint}')
 
     else:
         _set_status(f'修复脚本 {name} 异常退出 (返回码 {code}), 请检查脚本窗口输出', 1)

@@ -15,6 +15,7 @@ from window import dpi
 from window.popup_menu import PopupMenu
 
 from . import unload_mods
+from . import fix_mod_script
 
 
 illegalchat = ['/', '\\', ':', '*', '?', '"', '<', '>', '|']
@@ -555,6 +556,14 @@ class _ContextMenu (object):
         ...
 
 
+def _add_fix_all(menu):
+    """追加 "使用脚本修复所有Mod" (作用于 Mod 根目录 work\\Mods)"""
+    try: enabled = os.path.isdir(core.userenv.directory.work_mods)
+    except Exception: enabled = False
+    menu.add_separator()
+    menu.add_command(label='使用脚本修复所有Mod', command=fix_mod_script.fix_all_with_script, enabled=enabled)
+
+
 def _extension_of(name: str, value_name: str, iid: str, menu):
     interface = core.window.interface.mods_manage
     setattr(interface, value_name, iid)
@@ -571,6 +580,7 @@ class ClassificationContextMenu (_ContextMenu):
         self.menu.add_command(label='添加分类', command=add_classification)
         self.menu.add_command(label='管理分类', command=lambda: manage_classification(preset))
         unload_mods.add_to_menu(self.menu, iid or None)
+        _add_fix_all(self.menu)
 
     def apply_extension(self, iid):
         _extension_of("treeview_classification_menu", "value_classification_item", iid, self.menu)
@@ -586,6 +596,7 @@ class ObjectContextMenu (_ContextMenu):
         self.menu.add_command(label='添加对象', command=lambda: add_object(classname), enabled=enabled)
         self.menu.add_command(label='管理子对象', command=lambda: manage_objects(classname, iid or None), enabled=enabled)
         unload_mods.add_to_menu(self.menu, classname)
+        _add_fix_all(self.menu)
 
     def apply_extension(self, iid):
         _extension_of("treeview_objects_menu", "value_object_item", iid, self.menu)
