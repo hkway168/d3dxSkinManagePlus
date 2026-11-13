@@ -14,7 +14,7 @@ def env_config_amend():
         core.env.configuration.annotation_level = 3
 
     if not isinstance(core.env.configuration.style_theme, str) or core.env.configuration.style_theme not in ttkbootstrap.Style().theme_names():
-        core.env.configuration.style_theme = "darkly"
+        core.env.configuration.style_theme = "bootstrap-dark"
 
     # 对象列表是否显示没有本地 Mod 的对象, 默认不显示
     if not isinstance(core.env.configuration.show_empty_objects, bool):

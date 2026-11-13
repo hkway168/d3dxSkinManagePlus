@@ -156,9 +156,18 @@ class ImageTkThumbnailGroup(object):
             core.log.error(f"参数类型错误", L.MODULE_IMAGE)
             raise TypeError("The path type is not str.")
 
+        # 重定向配置文件是可选的, 不存在时仅加载缩略图目录下的图片
         if not os.path.isfile(path):
-            core.log.error(f"重定向配置文件 {path} 不存在", L.MODULE_IMAGE)
-            raise FileNotFoundError("FileNotFoundError as .")
+            core.log.info(f"重定向配置文件 {path} 不存在, 跳过重定向加载", L.MODULE_IMAGE)
+            try:
+                self.add_image_from_dirs(os.path.dirname(path))
+
+            except Exception:
+                ...
+
+            core.log.info("头像缩略图加载完成", L.MODULE_IMAGE)
+            core.construct.event.set_event(E.THUMBNAIL_LOADED)
+            return
 
         with open(path, 'r', encoding='utf-8') as fileobject: contentlst = fileobject.readlines()
         statementlst = [x.strip() for x in contentlst if x.strip()]
@@ -195,14 +204,24 @@ class ImageTkThumbnailGroup(object):
 
     def get(self, name: str) -> PIL.ImageTk.PhotoImage:
         if name in self.__table:
-            return self.__table.get(name, self.__none)
+            return self.__table[name]
+
+        algorithm = core.env.configuration.thumbnail_approximate_algorithm
+        if algorithm not in K.APPROXIMATE.ALL:
+            algorithm = K.APPROXIMATE.KEY_IN_ONLY
+
+        if algorithm == K.APPROXIMATE.EXACT_ONLY:
+            return self.__none
 
         for key, value in self.__table.items():
-            if key in name:
+            if algorithm == K.APPROXIMATE.KEY_IN_ONLY and key in name:
                 return value
 
-        else:
-            return self.__none
+            if algorithm == K.APPROXIMATE.NAME_IN_ONLY and name in key:
+                return value
+
+            if algorithm == K.APPROXIMATE.BIDIRECTIONAL and (key in name or name in key):
+                return value
 
         return self.__none
 

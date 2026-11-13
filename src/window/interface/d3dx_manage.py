@@ -31,6 +31,13 @@ ANNOTATION_LEVEL = {
     "关闭": 0
 }
 
+THUMBNAIL_APPROXIMATE = {
+    "精确匹配": K.APPROXIMATE.EXACT_ONLY,
+    "图片名包含于对象名": K.APPROXIMATE.KEY_IN_ONLY,
+    "对象名包含于图片名": K.APPROXIMATE.NAME_IN_ONLY,
+    "双向包含": K.APPROXIMATE.BIDIRECTIONAL
+}
+
 
 
 class D3dxManage(object):
@@ -70,6 +77,29 @@ class D3dxManage(object):
         self.frame_annotation_level.pack(side="top", fill="x", padx=10, pady=(0, 10))
         self.label_annotation_level.pack(side="left", padx=(0, 5))
         self.combobox_annotation_level.pack(side="right")
+
+        self.frame_thumbnail_approximate = ttkbootstrap.Frame(self.labelframe_global)
+        self.label_thumbnail_approximate = ttkbootstrap.Label(self.frame_thumbnail_approximate, text="头像匹配算法")
+        self.combobox_thumbnail_approximate = ttkbootstrap.Combobox(self.frame_thumbnail_approximate, state="readonly", values=[x for x in THUMBNAIL_APPROXIMATE])
+
+        self.frame_thumbnail_approximate.pack(side="top", fill="x", padx=10, pady=(0, 10))
+        self.label_thumbnail_approximate.pack(side="left", padx=(0, 5))
+        self.combobox_thumbnail_approximate.pack(side="right")
+
+        self.value_show_empty_objects = ttkbootstrap.BooleanVar(value=bool(core.env.configuration.show_empty_objects))
+
+        self.frame_show_empty_objects = ttkbootstrap.Frame(self.labelframe_global)
+        self.label_show_empty_objects = ttkbootstrap.Label(self.frame_show_empty_objects, text="显示空对象")
+        self.checkbutton_show_empty_objects = ttkbootstrap.Checkbutton(
+            self.frame_show_empty_objects,
+            variable=self.value_show_empty_objects,
+            bootstyle="round-toggle",
+            command=self.bin_set_show_empty_objects
+        )
+
+        self.frame_show_empty_objects.pack(side="top", fill="x", padx=10, pady=(0, 10))
+        self.label_show_empty_objects.pack(side="left", padx=(0, 5))
+        self.checkbutton_show_empty_objects.pack(side="right")
 
 
         self.labelframe_xxmi = ttkbootstrap.LabelFrame(self.labelframe_userenv, text="XXMI Launcher")
@@ -112,19 +142,29 @@ class D3dxManage(object):
         self.combobox_importer.bind("<FocusIn>", lambda *_: self.combobox_importer.selection_clear())
         self.combobox_log_level.bind("<FocusIn>", lambda *_: self.combobox_log_level.selection_clear())
         self.combobox_annotation_level.bind("<FocusIn>", lambda *_: self.combobox_annotation_level.selection_clear())
+        self.combobox_thumbnail_approximate.bind("<FocusIn>", lambda *_: self.combobox_thumbnail_approximate.selection_clear())
 
         self.combobox_importer.bind("<<ComboboxSelected>>", self.bin_choice_importer)
         self.combobox_theme.bind("<<ComboboxSelected>>", self.bin_set_style_theme)
         self.combobox_log_level.bind("<<ComboboxSelected>>", self.bin_set_log_level)
         self.combobox_annotation_level.bind("<<ComboboxSelected>>", self.bin_set_annotation_level)
+        self.combobox_thumbnail_approximate.bind("<<ComboboxSelected>>", self.bin_set_thumbnail_approximate)
 
 
     def initial(self):
+        # 配置修正在界面创建之后执行, 这里重新同步一次
+        self.value_show_empty_objects.set(bool(core.env.configuration.show_empty_objects))
+        self.sbin_update_thumbnail_approximate()
+
         _alt_set = core.window.annotation_toplevel.register
 
         _alt_set(self.combobox_theme, T.ANNOTATION_STYLE_THEME, 2)
         _alt_set(self.combobox_log_level, T.ANNOTATION_LOG_LEVEL, 2)
         _alt_set(self.combobox_annotation_level, T.ANNOTATION_ANNOTATION_LEVEL, 2)
+        _alt_set(self.combobox_thumbnail_approximate, T.ANNOTATION_THUMBNAIL_APPROXIMATE, 2)
+        _alt_set(self.label_thumbnail_approximate, T.ANNOTATION_THUMBNAIL_APPROXIMATE, 2)
+        _alt_set(self.checkbutton_show_empty_objects, T.ANNOTATION_SHOW_EMPTY_OBJECTS, 2)
+        _alt_set(self.label_show_empty_objects, T.ANNOTATION_SHOW_EMPTY_OBJECTS, 2)
 
         _alt_set(self.entry_xxmi, T.ANNOTATION_XXMI_ROOT, 2)
         _alt_set(self.button_choice_xxmi, T.ANNOTATION_XXMI_ROOT, 2)
@@ -159,6 +199,9 @@ class D3dxManage(object):
                 self.combobox_annotation_level.set(key)
                 break
 
+        self.sbin_update_thumbnail_approximate()
+        self.value_show_empty_objects.set(bool(core.env.configuration.show_empty_objects))
+
         _GamePath = core.userenv.configuration.GamePath
         if _GamePath is None: _GamePath = "< 未设置 >"
         self.sbin_update_game_path(_GamePath)
@@ -173,6 +216,17 @@ class D3dxManage(object):
     def sbin_update_game_path(self, text):
         self.entry_gamepath.delete(0, "end")
         self.entry_gamepath.insert(0, text)
+
+
+    def sbin_update_thumbnail_approximate(self):
+        current = core.env.configuration.thumbnail_approximate_algorithm
+        for key, value in THUMBNAIL_APPROXIMATE.items():
+            if current == value:
+                self.combobox_thumbnail_approximate.set(key)
+                break
+
+        else:
+            self.combobox_thumbnail_approximate.set("")
 
 
     def sbin_update_xxmi_root(self):
@@ -274,10 +328,27 @@ class D3dxManage(object):
         core.env.configuration.annotation_level = value
 
 
+    def bin_set_thumbnail_approximate(self, *_):
+        self.combobox_thumbnail_approximate.selection_clear()
+        value = THUMBNAIL_APPROXIMATE.get(self.combobox_thumbnail_approximate.get(), None)
+        if value is None:
+            return
+
+        core.env.configuration.thumbnail_approximate_algorithm = value
+        # 匹配结果变化后需要重新渲染分类与对象列表的缩略图
+        core.construct.event.set_event(E.MODS_MANAGE_CACHE_REFRESHED)
+
+
+    def bin_set_show_empty_objects(self, *_):
+        core.env.configuration.show_empty_objects = bool(self.value_show_empty_objects.get())
+        core.construct.event.set_event(E.MODS_MANAGE_CACHE_REFRESHED)
+
+
     def bin_selection_clear(self, *args, **kwds):
         self.combobox_importer.selection_clear()
         self.combobox_log_level.selection_clear()
         self.combobox_annotation_level.selection_clear()
+        self.combobox_thumbnail_approximate.selection_clear()
 
 
     def bin_choice_xxmi(self, *args, **kwds):

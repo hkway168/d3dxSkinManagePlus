@@ -88,6 +88,8 @@ TEXT_HELP = """d3dxSkinManage 使用帮助
         主题风格：立即生效
         日志等级：重启后生效
         描述提示词数量：控制鼠标悬停提示的详细程度
+        头像匹配算法：控制列表缩略图与 resources\\thumbnail 下图片的配对方式
+        显示空对象：开启后本地没有任何 Mod 的对象也会显示在对象列表中
 
     ● XXMI Launcher
         本程序不再内置 3DMigoto，改为对接 XXMI Launcher。
@@ -203,9 +205,21 @@ ANNOTATION_ANNOTATION_LEVEL = """描述提示词数量
 
 该项设置立即生效"""
 
-ANNOTATION_SHOW_EMPTY_OBJECTS = """在对象列表中显示没有 Mod 的对象
-关闭时，本地没有任何 Mod 的对象不会出现在对象列表中
-分类后的数量也只统计有 Mod 的对象
+ANNOTATION_THUMBNAIL_APPROXIMATE = """头像匹配算法
+决定分类 / 对象列表的缩略图如何与
+resources\\thumbnail 下的图片名称配对
+(名称完全相同时始终优先精确命中)
+
+精确匹配 - 仅使用名称完全相同的图片
+图片名包含于对象名 - 图片名是对象名的一部分 (默认)
+对象名包含于图片名 - 对象名是图片名的一部分
+双向包含 - 上述任一成立即可, 更易误匹配
+
+该项设置立即生效"""
+
+ANNOTATION_SHOW_EMPTY_OBJECTS = """显示空对象
+开启后，本地没有任何 Mod 的对象也会出现在对象列表中
+关闭时分类后的数量也只统计有 Mod 的对象
 
 默认关闭，该项设置立即生效"""
 

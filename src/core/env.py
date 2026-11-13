@@ -59,6 +59,12 @@ class configuration(libs.econfiguration.Configuration):
     annotation_level: int # 描述提示词等级
     style_theme: str # 主题风格
     xxmi_launcher_root: str # XXMI Launcher 根目录 (配置文件所在目录)
+    show_empty_objects: bool # 对象列表是否显示没有本地 Mod 的对象
+    view_explorer_path: str # 打开文件 / 目录所使用的文件管理器
+    view_file_rule: str # 打开文件时的参数规则
+    view_directory_rule: str # 打开目录时的参数规则
+    thumbnail_approximate_algorithm: str # 头像名称匹配算法 (K.APPROXIMATE)
+    fixtool_python: str # 运行 fixtool 修复脚本的 Python 解释器路径
 
 
 try:

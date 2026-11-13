@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 # std
+import os
 import threading
 
 # libs
@@ -97,12 +98,17 @@ def initial():
     mainwindow.geometry(f"{_w}x{_h}+{_x}+{_y}")
     mainwindow.minsize(min(dpi.scale(1280), _w), min(dpi.scale(600), _h))
 
-    try:
-        mainwindow.iconbitmap(default=core.env.file.local.iconbitmap)
-        mainwindow.iconbitmap(bitmap=core.env.file.local.iconbitmap)
+    _icon = core.env.file.local.iconbitmap
+    if not os.path.isfile(_icon):
+        core.log.warn(f"窗口图标文件 {_icon} 不存在, 使用系统默认图标", L.WINDOW)
 
-    except Exception as e:
-        core.log.error(f"窗口图标设置异常", L.WINDOW)
+    else:
+        try:
+            mainwindow.iconbitmap(default=_icon)
+            mainwindow.iconbitmap(bitmap=_icon)
+
+        except Exception as e:
+            core.log.error(f"窗口图标设置异常 {e.__class__.__name__}: {e}", L.WINDOW)
 
     frame_title.pack(side="top", fill="x")
     frame_block.pack(side="top", fill="both", expand=True)

@@ -49,15 +49,33 @@ class ACTION_VALUE ():
     SKIP = "skip"
 
 
+class APPROXIMATE ():
+    """头像 / 缩略图名称的近似匹配算法"""
+    # 仅精确匹配
+    EXACT_ONLY = "exact_only"
+    # 缩略图名称包含于目标名称中 (旧版本行为)
+    KEY_IN_ONLY = "key_in_only"
+    # 目标名称包含于缩略图名称中
+    NAME_IN_ONLY = "name_in_only"
+    # 双向包含均可
+    BIDIRECTIONAL = "bidirectional"
+
+    ALL = [EXACT_ONLY, KEY_IN_ONLY, NAME_IN_ONLY, BIDIRECTIONAL]
+
+
 DISABLED = "disabled"
 DISABLED_UPPER = "DISABLED"
 SUFFIX_JSON = ".json"
 
 
 __all__ = [
+    "CODE",
     "RE",
     "INDEX",
     "MOD_TYPE",
+    "ACTION_VALUE",
+    "APPROXIMATE",
     "DISABLED",
+    "DISABLED_UPPER",
     "SUFFIX_JSON"
 ]

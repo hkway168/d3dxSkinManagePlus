@@ -36,7 +36,7 @@ def run():
         amend.env_config_amend()
 
     except Exception as e:
-        log.error("配置文件数据修正错误", L.CORE)
+        log.error(f"配置文件数据修正错误 {e.__class__.__name__}: {e}\n{traceback.format_exc()}", L.CORE)
 
     try:
         log.set_level(env.configuration.log_level)

@@ -35,7 +35,7 @@ Windows 10+
 ```
 pillow
 pywin32
-ttkbootstrap
+ttkbootstrap>=2.2.7
 windnd
 pygetwindow
 pynput
