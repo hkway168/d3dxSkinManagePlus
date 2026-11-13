@@ -6,12 +6,15 @@ TEXT_HELP = """d3dxSkinManage 使用帮助
 
 
 一、快速上手
+    0. 先安装 XXMI Launcher（3DMigoto 本体由它负责下载与更新）。
     1. 在登录界面创建或选择一个用户并登录（每个用户的数据相互独立）。
-    2. 进入「环境设置」，选择 3DMigoto 版本，并通过「文件选择工具」设置游戏路径。
-    3. 回到「Mods 管理」，在分类列表右键「添加分类」，在对象列表右键「添加对象」。
-    4. 将 Mod 压缩包或文件夹拖入主窗口，填写 Mod 信息后确定。
-    5. 在「选择」列表中双击 Mod 即可加载；拖入图片可为 Mod 设置预览图。
-    6. 先点击「启动 3DMiGoto 加载器」，再点击「启动游戏」。
+    2. 进入「环境设置」，点击「选择 XXMI 目录」，选择模组导入器，
+       并通过「文件选择工具」设置游戏路径。
+    3. 点击「启动 XXMI Launcher」，在其中完成 3DMigoto 的安装/更新。
+    4. 回到「Mods 管理」，在分类列表右键「添加分类」，在对象列表右键「添加对象」。
+    5. 将 Mod 压缩包或文件夹拖入主窗口，填写 Mod 信息后确定。
+    6. 在「选择」列表中双击 Mod 即可加载；拖入图片可为 Mod 设置预览图。
+    7. 点击「启动游戏」，由 XXMI Launcher 注入并启动游戏。
 
 
 二、Mods 管理
@@ -86,16 +89,24 @@ TEXT_HELP = """d3dxSkinManage 使用帮助
         日志等级：重启后生效
         描述提示词数量：控制鼠标悬停提示的详细程度
 
-    ● 3DMigoto 版本
-        从 resources\\3dmigoto 中选择版本压缩包。
-        注意：切换版本会清空工作目录中除 Mods 以外的全部内容，请勿在 3DMigoto 运行时切换。
-        「启动 3DMiGoto 加载器」以管理员权限运行加载器。
+    ● XXMI Launcher
+        本程序不再内置 3DMigoto，改为对接 XXMI Launcher。
+        「选择 XXMI 目录」选择 XXMI Launcher 所在目录（含 XXMI Launcher Config.json）。
+        「模组导入器」选择与游戏对应的导入器：
+            GIMI 原神 / SRMI 崩坏：星穹铁道 / ZZMI 绝区零
+            WWMI 鸣潮 / HIMI 崩坏3 / EFMI 明日方舟：终末地
+        选择后会把该导入器的目录（importer_folder）指向当前用户的 work 目录，
+        XXMI Launcher 会把 3DMigoto 下载并部署到这里，Mod 仍加载于 work\\Mods。
+        「启动 XXMI Launcher」打开其图形界面，用于安装或更新 3DMigoto。
         「打开工作目录」打开当前用户的 work 文件夹。
+        注意：XXMI Launcher 退出时会回写自身配置，因此修改配置前需先将其关闭；
+              本程序修改前会自动备份为 XXMI Launcher Config.json.d3dxsm.bak。
 
     ● 游戏路径
         请务必通过「文件选择工具」选择游戏主程序（而不是启动器 launcher.exe）。
-        选择后会自动修改 d3dx.ini 中的 target 项。
-        「启动游戏」/「打开游戏目录」
+        选择后会自动识别对应的导入器并同步至 XXMI Launcher 配置。
+        「启动游戏」由 XXMI Launcher 注入并启动游戏（等价于 --nogui 启动）。
+        「打开游戏目录」在文件资源管理器中打开游戏所在目录。
 
     ● 切换用户：点击窗口右下角「[ 退出用户 ]」返回登录界面。
 
@@ -115,11 +126,10 @@ TEXT_HELP = """d3dxSkinManage 使用帮助
     home\\<用户名>\\
         classification\\       分类配置
         modsIndex\\            Mod 索引（self-index.json）
-        work\\                 3DMigoto 工作目录（Mods 解压于 work\\Mods）
+        work\\                 3DMigoto 工作目录（由 XXMI Launcher 部署，Mods 解压于 work\\Mods）
         description.txt       用户描述
         picture.png/jpg       用户头像
     resources\\
-        3dmigoto\\             3DMigoto 版本压缩包
         mods\\                 以 SHA 命名的 Mod 原始文件
         preview\\              预览图
         thumbnail\\            分类与对象缩略图（_redirection.ini 可配置映射）
@@ -131,7 +141,10 @@ TEXT_HELP = """d3dxSkinManage 使用帮助
     ● 拖入文件没有反应？
         请确认已登录，且一次只拖入一个文件。
     ● Mod 加载后游戏内不生效？
-        请确认已选择 3DMigoto 版本、游戏路径正确，并且先启动加载器再启动游戏。
+        请确认已设置 XXMI Launcher 目录与正确的导入器，
+        且导入器状态显示「已就绪」，并通过「启动游戏」启动。
+    ● 提示 XXMI Launcher 正在运行？
+        XXMI Launcher 退出时会覆盖自身配置，请先关闭它再进行设置。
     ● 卸载后的 Mod 去哪了？
         卸载只会将 work\\Mods 中的文件夹重命名为 disabled-<SHA>，再次加载时直接恢复，不会重复解压。
 """
@@ -196,13 +209,30 @@ ANNOTATION_SHOW_EMPTY_OBJECTS = """在对象列表中显示没有 Mod 的对象
 
 默认关闭，该项设置立即生效"""
 
-ANNOTATION_D3DX_VERSION = """点击右侧的下拉箭头或输入框底部唤出下拉菜单
-在下拉菜单中选择需要切换到的版本
-不要尝试在 3DMiGoto 运行时切换版本"""
+ANNOTATION_XXMI_ROOT = """XXMI Launcher 所在目录
+3DMigoto 本体由 XXMI Launcher 负责下载与更新
+请选择包含「XXMI Launcher Config.json」
+或「Resources\\Bin\\XXMI Launcher.exe」的目录
 
-ANNOTATION_D3DX_INJECTION = """我知道你在想什么\n但这个玩意儿确实不能用"""
+该项为全局设置, 所有用户共用"""
 
-ANNOTATION_D3DX_START = "先 启动 3DMiGoto 加载器\n再 启动游戏"
+ANNOTATION_XXMI_IMPORTER = """模组导入器
+选择与当前游戏对应的导入器
+GIMI 原神 / SRMI 星穹铁道 / ZZMI 绝区零
+WWMI 鸣潮 / HIMI 崩坏3 / EFMI 终末地
+
+选择后会把该导入器的目录指向当前用户的 work 目录"""
+
+ANNOTATION_XXMI_STATUS = """当前 XXMI Launcher 的对接状态
+已就绪表示导入器目录已指向当前用户的 work 目录
+且 work 目录中已存在 XXMI 部署的 3DMigoto 文件"""
+
+ANNOTATION_XXMI_LAUNCH = """启动 XXMI Launcher 图形界面
+首次使用或需要更新 3DMigoto 时, 在其中点击安装/更新
+注意: XXMI Launcher 退出时会回写配置
+修改配置前请先关闭它"""
+
+ANNOTATION_D3DX_START = "由 XXMI Launcher 注入并启动游戏\n启动前请确认 3DMigoto 已安装至工作目录"
 
 ANNOTATION_D3DX_OPEN_WORK_DIR = "在文件资源管理器中打开 3DMiGoto 的工作目录"
 

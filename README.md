@@ -9,6 +9,7 @@
 ## 主要改动
 
 - **多用户管理**：登录界面可直接创建用户（用户名、描述、头像、游戏路径，可从已有用户复制分类配置），支持注销返回登录界面。
+- **对接 XXMI Launcher**：不再内置 3DMigoto 版本压缩包，改为将 [XXMI Launcher](https://github.com/SpectrumQT/XXMI-Launcher) 对应导入器（GIMI / SRMI / ZZMI / WWMI / HIMI / EFMI）的目录指向当前用户的 `work` 目录，由其负责 3DMigoto 的下载、更新与注入启动。
 - **高 DPI 适配**：适配 4K 等高缩放比例屏幕，行高、列宽、缩略图按系统 DPI 自动换算。
 - **分类管理增强**：分类支持添加、置顶 / 上移 / 下移 / 置底、重命名、删除；对象支持排序、移出分类。
 - **预览图增强**：
@@ -79,12 +80,15 @@ buildtools\build.bat [onedir] [nopause]
 
 ## 快速上手
 
+> 前置条件：先安装 [XXMI Launcher](https://github.com/SpectrumQT/XXMI-Launcher)，3DMigoto 本体由它负责下载与更新。
+
 1. 在登录界面创建或选择一个用户并登录（每个用户的数据相互独立）。
-2. 进入「环境设置」，选择 3DMigoto 版本，并通过「文件选择工具」选择游戏主程序。
-3. 回到「Mods 管理」，在分类列表右键「添加分类」，在对象列表右键「添加对象」。
-4. 将 Mod 压缩包（`.zip` / `.rar` / `.7z`）、单个 `.ini` 文件或文件夹拖入主窗口，填写 Mod 信息后确定。
-5. 在「选择」列表中双击 Mod 即可加载；选中 Mod 后拖入图片可设置预览图。
-6. 先点击「启动 3DMiGoto 加载器」，再点击「启动游戏」。
+2. 进入「环境设置」，点击「选择 XXMI 目录」，选择模组导入器，并通过「文件选择工具」选择游戏主程序。
+3. 点击「启动 XXMI Launcher」，在其中完成 3DMigoto 的安装 / 更新（会部署到当前用户的 `work` 目录）。
+4. 回到「Mods 管理」，在分类列表右键「添加分类」，在对象列表右键「添加对象」。
+5. 将 Mod 压缩包（`.zip` / `.rar` / `.7z`）、单个 `.ini` 文件或文件夹拖入主窗口，填写 Mod 信息后确定。
+6. 在「选择」列表中双击 Mod 即可加载；选中 Mod 后拖入图片可设置预览图。
+7. 点击「启动游戏」，由 XXMI Launcher 注入并启动游戏。
 
 更详细的说明见程序内「关于」页面。
 
@@ -92,7 +96,7 @@ buildtools\build.bat [onedir] [nopause]
 
 将 Mod 压缩包以其 SHA1 值命名储存在 `./resources/mods` 中，并使用索引文件记录 Mod 文件的相关信息。
 
-在加载 Mod 时将压缩包释放到对应用户 3DMigoto 工作目录的 Mods 文件夹（`home/<用户名>/work/Mods`）。
+在加载 Mod 时将压缩包释放到对应用户 3DMigoto 工作目录的 Mods 文件夹（`home/<用户名>/work/Mods`），该工作目录同时作为 XXMI Launcher 的导入器目录。
 
 单个 `.ini` 文件形式的 Mod 同样以 SHA1 命名直接储存，加载时无需解压，会被复制到 `home/<用户名>/work/Mods/<SHA1>/` 下。
 

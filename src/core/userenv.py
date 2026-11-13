@@ -17,6 +17,7 @@ from constant import *
 user_name: str = ...
 class configuration(libs.econfiguration.Configuration):
     GamePath: str
+    XXMIImporter: str # XXMI Launcher 使用的模组导入器 (GIMI / SRMI / ZZMI ...)
 
 
 class __directory (Directory):

@@ -133,6 +133,12 @@ def create_user(user_name: str, description: str = "", game_path: str = "",
         configuration = libs.econfiguration.Configuration()
         if game_path:
             configuration.GamePath = game_path.replace("/", "\\")
+
+            from . import xxmi
+            importer = xxmi.detect_importer(game_path)
+            if importer is not None:
+                configuration.XXMIImporter = importer
+
         configuration._con_asve_as_json(os.path.join(user_path, "configuration"))
 
         if description.strip():

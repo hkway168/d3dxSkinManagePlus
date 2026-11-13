@@ -6,6 +6,7 @@ from . import synchronization
 from . import extension
 from . import user_manage
 from . import plugins
+from . import xxmi
 
 from .index_manage import IndexManage
 from .mods_index import ModsIndex
@@ -24,6 +25,7 @@ __all__ = [
     "extension",
     "user_manage",
     "plugins",
+    "xxmi",
     "index_manage",
     "mods_index",
     "mods_manage",

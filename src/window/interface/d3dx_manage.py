@@ -1,8 +1,6 @@
 # -*- coding: utf-8 -*-
 
 import os
-import json
-import shutil
 import tkinter.filedialog
 
 import win32api
@@ -10,6 +8,7 @@ import pywintypes
 import ttkbootstrap
 
 import core
+import module
 from constant import *
 
 
@@ -73,20 +72,30 @@ class D3dxManage(object):
         self.combobox_annotation_level.pack(side="right")
 
 
-        self.labelframe_replace = ttkbootstrap.LabelFrame(self.labelframe_userenv, text="3DMigoto 版本")
+        self.labelframe_xxmi = ttkbootstrap.LabelFrame(self.labelframe_userenv, text="XXMI Launcher")
         self.labelframe_gamepath = ttkbootstrap.LabelFrame(self.labelframe_userenv, text="游戏路径")
 
-        self.labelframe_replace.pack(side="top", fill="x", padx=10, pady=10)
+        self.labelframe_xxmi.pack(side="top", fill="x", padx=10, pady=10)
         self.labelframe_gamepath.pack(side="top", fill="x", padx=10, pady=(0, 10))
- 
-        self.combobox_versions = ttkbootstrap.Combobox(self.labelframe_replace)#, bootstyle="light")
-        self.combobox_versions.pack(side="top", fill="x", expand=True, padx=10, pady=10)
 
-        self.button_d3dxstart = ttkbootstrap.Button(self.labelframe_replace, text="启动 3DMiGoto 加载器", bootstyle="outline", width=BUTTON_WIDTH, command=self.bin_launch_d3dx)
-        self.button_injection = ttkbootstrap.Button(self.labelframe_replace, text="一键启动", bootstyle="outline", width=BUTTON_WIDTH, command=self.bin_onekey_launch)
-        self.button_open_work = ttkbootstrap.Button(self.labelframe_replace, text="打开工作目录", bootstyle="outline", width=BUTTON_WIDTH, command=self.bin_open_work)
-        self.button_injection.pack(side="left", padx=(10, 10), pady=(0, 10))
-        self.button_d3dxstart.pack(side="left", padx=(0, 10), pady=(0, 10))
+        self.entry_xxmi = ttkbootstrap.Entry(self.labelframe_xxmi, state="readonly")
+        self.entry_xxmi.pack(side="top", fill="x", expand=True, padx=10, pady=10)
+
+        self.frame_importer = ttkbootstrap.Frame(self.labelframe_xxmi)
+        self.label_importer = ttkbootstrap.Label(self.frame_importer, text="模组导入器")
+        self.combobox_importer = ttkbootstrap.Combobox(self.frame_importer, state="readonly", values=[module.xxmi.importer_display(x) for x in module.xxmi.IMPORTERS])
+        self.label_xxmi_status = ttkbootstrap.Label(self.frame_importer, text="")
+
+        self.frame_importer.pack(side="top", fill="x", padx=10, pady=(0, 10))
+        self.label_importer.pack(side="left", padx=(0, 10))
+        self.combobox_importer.pack(side="left")
+        self.label_xxmi_status.pack(side="left", padx=(10, 0))
+
+        self.button_choice_xxmi = ttkbootstrap.Button(self.labelframe_xxmi, text="选择 XXMI 目录", bootstyle="outline", width=BUTTON_WIDTH, command=self.bin_choice_xxmi)
+        self.button_launch_xxmi = ttkbootstrap.Button(self.labelframe_xxmi, text="启动 XXMI Launcher", bootstyle="outline", width=BUTTON_WIDTH, command=self.bin_launch_xxmi)
+        self.button_open_work = ttkbootstrap.Button(self.labelframe_xxmi, text="打开工作目录", bootstyle="outline", width=BUTTON_WIDTH, command=self.bin_open_work)
+        self.button_choice_xxmi.pack(side="left", padx=(10, 10), pady=(0, 10))
+        self.button_launch_xxmi.pack(side="left", padx=(0, 10), pady=(0, 10))
         self.button_open_work.pack(side="left", padx=(0, 10), pady=(0, 10))
 
         self.entry_gamepath = ttkbootstrap.Entry(self.labelframe_gamepath)#, bootstyle="light")
@@ -100,11 +109,11 @@ class D3dxManage(object):
         self.button_open_game.pack(side="left", padx=(0, 10), pady=(0, 10))
 
         self.combobox_theme.bind("<FocusIn>", lambda *_: self.combobox_theme.selection_clear())
-        self.combobox_versions.bind("<FocusIn>", lambda *_: self.combobox_versions.selection_clear())
+        self.combobox_importer.bind("<FocusIn>", lambda *_: self.combobox_importer.selection_clear())
         self.combobox_log_level.bind("<FocusIn>", lambda *_: self.combobox_log_level.selection_clear())
         self.combobox_annotation_level.bind("<FocusIn>", lambda *_: self.combobox_annotation_level.selection_clear())
 
-        self.combobox_versions.bind("<<ComboboxSelected>>", self.bin_choice_version)
+        self.combobox_importer.bind("<<ComboboxSelected>>", self.bin_choice_importer)
         self.combobox_theme.bind("<<ComboboxSelected>>", self.bin_set_style_theme)
         self.combobox_log_level.bind("<<ComboboxSelected>>", self.bin_set_log_level)
         self.combobox_annotation_level.bind("<<ComboboxSelected>>", self.bin_set_annotation_level)
@@ -117,9 +126,11 @@ class D3dxManage(object):
         _alt_set(self.combobox_log_level, T.ANNOTATION_LOG_LEVEL, 2)
         _alt_set(self.combobox_annotation_level, T.ANNOTATION_ANNOTATION_LEVEL, 2)
 
-        _alt_set(self.combobox_versions, T.ANNOTATION_D3DX_VERSION, 2)
-        _alt_set(self.button_injection, T.ANNOTATION_D3DX_INJECTION, 2)
-        _alt_set(self.button_d3dxstart, T.ANNOTATION_D3DX_START, 2)
+        _alt_set(self.entry_xxmi, T.ANNOTATION_XXMI_ROOT, 2)
+        _alt_set(self.button_choice_xxmi, T.ANNOTATION_XXMI_ROOT, 2)
+        _alt_set(self.combobox_importer, T.ANNOTATION_XXMI_IMPORTER, 2)
+        _alt_set(self.label_xxmi_status, T.ANNOTATION_XXMI_STATUS, 2)
+        _alt_set(self.button_launch_xxmi, T.ANNOTATION_XXMI_LAUNCH, 2)
         _alt_set(self.button_open_work, T.ANNOTATION_D3DX_OPEN_WORK_DIR, 2)
         _alt_set(self.entry_gamepath, T.ANNOTATION_D3DX_SET_GAME_PATH, 2)
         _alt_set(self.button_filechoice, T.ANNOTATION_D3DX_SET_GAME_PATH, 2)
@@ -151,27 +162,83 @@ class D3dxManage(object):
         _GamePath = core.userenv.configuration.GamePath
         if _GamePath is None: _GamePath = "< 未设置 >"
         self.sbin_update_game_path(_GamePath)
-        d3dxs = core.env.directory.resources.d3dxs
-        if os.path.isdir(d3dxs):
-            dirlist = os.listdir(d3dxs)
-            lst = [x for x in dirlist if os.path.isfile(os.path.join(d3dxs, x))]
-            self.combobox_versions.config(values=lst)
 
-        self.combobox_versions.set("")
+        self.sbin_update_xxmi_root()
 
-        try:
-            with open(os.path.join(core.userenv.directory.work, f"d3dx_version_name_from_{core.env.CODE_NAME}"), "r", encoding="utf-8") as fileobject:
-                version_name = fileobject.read()
-
-            self.combobox_versions.set(version_name)
-
-        except Exception:
-            ...
+        importer = self.sbin_get_importer()
+        self.combobox_importer.set(module.xxmi.importer_display(importer) if importer else "")
+        self.sbin_update_xxmi_status()
 
 
     def sbin_update_game_path(self, text):
         self.entry_gamepath.delete(0, "end")
         self.entry_gamepath.insert(0, text)
+
+
+    def sbin_update_xxmi_root(self):
+        root = module.xxmi.get_root()
+        self.entry_xxmi.config(state="normal")
+        self.entry_xxmi.delete(0, "end")
+        self.entry_xxmi.insert(0, root if root else "< 未设置 >")
+        self.entry_xxmi.config(state="readonly")
+
+
+    def sbin_get_importer(self) -> str | None:
+        """当前用户的导入器, 未设置时根据游戏路径推断"""
+        importer = core.userenv.configuration.XXMIImporter
+        if importer in module.xxmi.IMPORTERS:
+            return importer
+
+        importer = module.xxmi.detect_importer(core.userenv.configuration.GamePath)
+        if importer is not None:
+            core.userenv.configuration.XXMIImporter = importer
+        return importer
+
+
+    def sbin_update_xxmi_status(self):
+        importer = self.sbin_get_importer()
+
+        if module.xxmi.get_root() is None:
+            text, style = "未设置 XXMI Launcher 目录", "danger"
+        elif importer is None:
+            text, style = "请选择模组导入器", "warning"
+        elif not module.xxmi.is_bound(importer):
+            text, style = "未指向工作目录（启动时自动同步）", "warning"
+        elif not module.xxmi.is_installed():
+            text, style = "未安装，请在 XXMI Launcher 中安装", "warning"
+        else:
+            text, style = "已就绪", "success"
+
+        self.label_xxmi_status.config(text=f"● {text}", bootstyle=style)
+
+
+    def sbin_sync_xxmi(self, silent: bool = False) -> bool:
+        """将 XXMI Launcher 的导入器目录指向当前用户 work 目录, 已指向时跳过"""
+        importer = self.sbin_get_importer()
+
+        if module.xxmi.get_root() is None:
+            if not silent: core.window.messagebox.showerror(title="XXMI Launcher", message="未设置 XXMI Launcher 目录\n请先点击「选择 XXMI 目录」")
+            return False
+
+        if importer is None:
+            if not silent: core.window.messagebox.showerror(title="XXMI Launcher", message="未选择模组导入器")
+            return False
+
+        if module.xxmi.is_bound(importer):
+            return True
+
+        try:
+            module.xxmi.bind_work(importer, core.userenv.configuration.GamePath)
+            return True
+        except module.xxmi.XXMIError as e:
+            if not silent: core.window.messagebox.showerror(title="XXMI Launcher", message=str(e))
+        except Exception as e:
+            core.log.error(f"同步 XXMI Launcher 配置失败: {e}")
+            if not silent: core.window.messagebox.showerror(title="XXMI Launcher", message=f"同步 XXMI Launcher 配置失败\n{e}")
+        finally:
+            self.sbin_update_xxmi_status()
+
+        return False
 
 
     def bin_set_style_theme(self, *_):
@@ -208,69 +275,52 @@ class D3dxManage(object):
 
 
     def bin_selection_clear(self, *args, **kwds):
-        self.combobox_versions.selection_clear()
+        self.combobox_importer.selection_clear()
         self.combobox_log_level.selection_clear()
         self.combobox_annotation_level.selection_clear()
 
 
-    def bin_choice_version(self, *args, **kwds):
-        version_name = self.combobox_versions.get()
+    def bin_choice_xxmi(self, *args, **kwds):
+        initialdir = module.xxmi.get_root() or os.path.abspath(".")
+        path = tkinter.filedialog.askdirectory(title="选择 XXMI Launcher 所在目录", initialdir=initialdir)
+        if not path: return
+
+        root = module.xxmi.resolve_root(path)
+        if root is None:
+            core.window.messagebox.showerror(title="XXMI Launcher", message=f"所选目录中未找到 XXMI Launcher\n\n请选择包含「Resources\\Bin\\{module.xxmi.LAUNCHER_EXE_NAME}」\n或「{module.xxmi.CONFIG_FILE_NAME}」的目录")
+            return
+
+        module.xxmi.set_root(root)
+        self.sbin_update_xxmi_root()
+
+        if self.sbin_get_importer() is not None:
+            self.combobox_importer.set(module.xxmi.importer_display(self.sbin_get_importer()))
+
+        self.sbin_sync_xxmi(silent=True)
+        self.sbin_update_xxmi_status()
+
+
+    def bin_choice_importer(self, *args, **kwds):
         self.bin_selection_clear()
+        importer = module.xxmi.importer_from_display(self.combobox_importer.get())
+        if importer is None: return
+
+        core.userenv.configuration.XXMIImporter = importer
+        self.sbin_sync_xxmi(silent=True)
+        self.sbin_update_xxmi_status()
+
+
+    def bin_launch_xxmi(self, *args, **kwds):
+        if not self.sbin_sync_xxmi(): return
 
         try:
-            for name in os.listdir(core.userenv.directory.work):
-                if name == "Mods": continue
-                path = os.path.join(core.userenv.directory.work, name)
-                if os.path.isfile(path): os.remove(path)
-                if os.path.isdir(path): shutil.rmtree(path)
-        except Exception:
-            ...
-
-        core.external.x7z(os.path.join(core.env.directory.resources.d3dxs, version_name), core.userenv.directory.work)
-
-        try:
-            with open(os.path.join(core.userenv.directory.work, f"d3dx_version_name_from_{core.env.CODE_NAME}"), "w", encoding="utf-8") as fileobject:
-                fileobject.write(version_name)
-        except Exception:
-            ...
-
-        self.sbin_auto_set_d3dx_ini()
-
-
-    def bin_launch_d3dx(self, *args, **kwds):
-        schemepath = os.path.join(core.userenv.directory.work, "scheme.json")
-        if os.path.isfile(schemepath):
-            try:
-                with open(schemepath, "r", encoding="utf-8") as fileobject:
-                    filecontent = fileobject.read()
-                    scheme = json.loads(filecontent)
-                    launch_name = scheme["launch"]
-            except Exception:
-                core.window.messagebox.showerror("scheme 数据解释失败\n请检查用户 work 目录或 d3dx 版本", title="数据错误")
-
-        else:
-            lst = os.listdir(core.userenv.directory.work)
-            for name in ["3DMigotoLoader.exe", "3DMigoto Loader.exe"]:
-                if name in lst:
-                    launch_name = name
-                    break
-            else:
-                core.window.messagebox.showerror(title="检索错误", message="无法找到正确的方式启动 3DMigoto 加载器\n请检查用户 work 目录或 d3dx 版本")
-                return
-
-        launch_file = os.path.abspath(os.path.join(core.userenv.directory.work, launch_name))
-
-        try:
-            win32api.ShellExecute(None, "runas", launch_file, None, os.path.abspath(core.userenv.directory.work), 1)
+            module.xxmi.launch(self.sbin_get_importer())
+        except module.xxmi.XXMIError as e:
+            core.window.messagebox.showerror(title="XXMI Launcher", message=str(e))
         except pywintypes.error as e:
             core.window.messagebox.showerror(title="异常捕获", message=f"{e.args[1]}: {e.args[0]}\n{e.args[2]}")
-        except Exception:
-            core.window.messagebox.showerror(title="程序故障", message="无法找到正确的方式启动该程序")
-            return 0
-
-
-    def bin_onekey_launch(self, *args, **kwds):
-        core.window.messagebox.showinfo(title="成就：不信邪", message="都说过了这个玩意儿不能用")
+        finally:
+            self.sbin_update_xxmi_status()
 
 
     def bin_open_work(self, *args, **kwds):
@@ -298,15 +348,23 @@ class D3dxManage(object):
             core.window.messagebox.showerror(title="错误的映像名", message="你选择了一个非 .exe 后缀名的文件\n请确认选择的是应用程序文件\n操作已被阻止")
             return
 
-        elif choice_NAME == "launcher.exe":
+        elif choice_NAME.lower() == "launcher.exe":
             core.window.messagebox.showwarning(title="意料之中的映像名", message="你似乎选择了 launcher.exe 文件\n通常情况下它是启动器程序而不是游戏启动程序")
 
-        elif choice_NAME not in ["YuanShen.exe", "GenshinImpact.exe", "StarRail.exe"]:
-            core.window.messagebox.showwarning(title="意料之中的映像名", message="你选择的文件映像名不在白名单之中\n请确保它是游戏的启动程序\n\n- GenshinImpact.exe\n- YuanShen.exe\n- StarRail.exe")
+        elif module.xxmi.detect_importer(choice_PATH) is None:
+            names = "\n".join(f"- {x}" for x in ["GenshinImpact.exe", "YuanShen.exe", "StarRail.exe", "ZenlessZoneZero.exe", "Wuthering Waves.exe", "BH3.exe", "Endfield.exe"])
+            core.window.messagebox.showwarning(title="意料之中的映像名", message=f"你选择的文件映像名不在白名单之中\n请确保它是游戏的启动程序\n\n{names}")
 
         core.userenv.configuration.GamePath = choice_PATH
         self.sbin_update_game_path(choice_PATH)
-        self.sbin_auto_set_d3dx_ini()
+
+        importer = module.xxmi.detect_importer(choice_PATH)
+        if importer is not None and importer != core.userenv.configuration.XXMIImporter:
+            core.userenv.configuration.XXMIImporter = importer
+            self.combobox_importer.set(module.xxmi.importer_display(importer))
+
+        self.sbin_sync_xxmi(silent=True)
+        self.sbin_update_xxmi_status()
 
 
     def bin_launch_game(self, *args, **kwds):
@@ -314,45 +372,18 @@ class D3dxManage(object):
         if path is None:
             core.window.messagebox.showerror(title="数据未设置", message="无法启动游戏\n未设置游戏路径")
             return
+
+        if not self.sbin_sync_xxmi(): return
+
+        if not module.xxmi.is_installed():
+            core.window.messagebox.showwarning(title="XXMI Launcher", message="工作目录中尚未安装 3DMigoto\n请先点击「启动 XXMI Launcher」并在其中完成安装")
+            return
+
         try:
-            win32api.ShellExecute(None, "open", path, None, os.path.realpath(os.path.dirname(path)), 1)
+            module.xxmi.launch(self.sbin_get_importer(), nogui=True)
+        except module.xxmi.XXMIError as e:
+            core.window.messagebox.showerror(title="XXMI Launcher", message=str(e))
         except pywintypes.error as e:
             core.window.messagebox.showerror(title="异常捕获", message=f"{e.args[1]}: {e.args[0]}\n{e.args[2]}")
         except Exception:
             core.window.messagebox.showerror(title="程序故障", message="无法找到正确的方式启动该程序")
-            return
-
-
-    def sbin_auto_set_d3dx_ini(self):
-        gamepath = core.userenv.configuration.GamePath
-        if gamepath is None: return
-        schemepath = os.path.join(core.userenv.directory.work, "scheme.json")
-        if os.path.isfile(schemepath):
-            try:
-                with open(schemepath, "r", encoding="utf-8") as fileobject:
-                    filecontent = fileobject.read()
-                    scheme = json.loads(filecontent)
-                    if scheme["set-need"] is False: return
-            except Exception:
-                core.window.messagebox.showerror(title="数据错误", message="scheme 数据解释失败\n请检查用户 work 目录或 d3dx 版本")
-
-        d3dxinipath = os.path.join(core.userenv.directory.work, "d3dx.ini")
-        if not os.path.isfile(d3dxinipath): return
-
-        self.sbin_set_d3dx_ini(d3dxinipath, gamepath)
-
-
-    def sbin_set_d3dx_ini(self, d3dxinipath, gamepath):
-        try:
-            with open(d3dxinipath, "r", encoding="utf-8") as iF: iS = iF.read()
-            with open(d3dxinipath, "w", encoding="utf-8") as iF:
-                iSL = iS.split("\n")
-                for iD in range(len(iSL)):
-                    iP = iSL[iD]
-                    if iP[:6] == "target":
-                        iSL[iD] = "target = " + gamepath
-                        break
-                iS = "\n".join(iSL)
-                iF.write(iS)
-        except Exception:
-            core.window.messagebox.showerror(title="意料之外的错误", message="在修改 d3dx.ini 时出现了意料之外的错误")

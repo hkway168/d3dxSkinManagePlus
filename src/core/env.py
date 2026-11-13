@@ -29,7 +29,6 @@ base = __base()
 class directory (Directory):
     class __resources (Directory):
         mods = __(base.resources, "mods")
-        d3dxs = __(base.resources, "3dmigoto")
         preview = __(base.resources, "preview")
         thumbnail = __(base.resources, "thumbnail")
         cache = __(base.resources, "cache")
@@ -59,6 +58,7 @@ class configuration(libs.econfiguration.Configuration):
     log_level: int | str # 日志等级
     annotation_level: int # 描述提示词等级
     style_theme: str # 主题风格
+    xxmi_launcher_root: str # XXMI Launcher 根目录 (配置文件所在目录)
 
 
 try:

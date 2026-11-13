@@ -8,10 +8,10 @@
 │   │   ├── modsIndex                   // mods 索引
 │   │   │   └── ...                         // mods 索引文件
 │   │   │
-│   │   ├── work                        // 工作目录， 3DMiGoto 会解压到这个文件夹
+│   │   ├── work                        // 工作目录，同时作为 XXMI Launcher 的导入器目录
 │   │   │   ├── Mods                        // 加载的 Mods 会解压到这个文件夹
-│   │   │   ├── d3d11.dll                   // 最重要的文件
-│   │   │   ├── scheme.json                 // 工作方式，决定程序会如何处理和启动 3DMiGoto
+│   │   │   ├── d3d11.dll                   // 最重要的文件，由 XXMI Launcher 部署
+│   │   │   ├── d3dx.ini                    // 3DMiGoto 配置，由 XXMI Launcher 维护
 │   │   │   └── ...                         // 3DMiGoto 的其他文件
 │   │   │
 │   │   ├── configuration               // 用户配置文件，无特殊需要不要尝试去改动这个文件
@@ -29,9 +29,6 @@
 │   └── iconbitmap.ico              // 程序图标
 │
 ├── resources                   // 用户资源
-│   ├── 3dmigoto                    // 3DMiGoto 版本文件夹，存放不同版本的压缩包
-│   │   └── ...
-│   │
 │   ├── 7zip                    // 这应该是个失误
 │   │   ├── 7z.dll
 │   │   └── 7z.exe
