@@ -303,7 +303,7 @@ class D3dxManage(object):
         
         core.window.style.theme_use(value)
         core.env.configuration.style_theme = value
-        core.window.dpi.apply_style(core.window.style)
+        core.window.apply_style()
 
         # 主题色变化后需要重新应用选择列表的状态配色
         try: core.window.interface.mods_manage.apply_choices_tag_style()

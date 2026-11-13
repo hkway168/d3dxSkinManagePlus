@@ -48,6 +48,49 @@ interface = Interface(frame_notebook)
 style = ttkbootstrap.Style()
 style_theme_names = style.theme_names()
 
+# 选中行背景 = 列表底色向前景色方向提亮 / 压暗的比例 (中性灰高亮, 不带色相)
+# 深色主题取 0.18, 与旧版 darkly 的选中色 (#2f2f2f -> #555555) 基本一致
+TREEVIEW_SELECT_MIX_DARK = 0.18
+TREEVIEW_SELECT_MIX_LIGHT = 0.12
+
+
+def _mix_color(base: str, overlay: str, ratio: float) -> str:
+    """按 ratio 将 overlay 混合到 base 上, 返回 #rrggbb"""
+    r1, g1, b1 = (v // 257 for v in mainwindow.winfo_rgb(base))
+    r2, g2, b2 = (v // 257 for v in mainwindow.winfo_rgb(overlay))
+    mix = lambda a, b: round(a + (b - a) * ratio)
+    return f"#{mix(r1, r2):02x}{mix(g1, g2):02x}{mix(b1, b2):02x}"
+
+
+def apply_treeview_select_style() -> None:
+    """
+    自定义 Treeview 选中行配色。
+
+    主题默认的选中色在深色主题下是浅灰底 + 黑字, 且 style map 中的选中文字色会覆盖条目标签的文字色,
+    导致 "正在使用" 等状态色在选中时丢失。这里改为中性灰高亮背景 (由列表底色向前景色混合得到, 不带色相),
+    并移除选中状态的文字色, 让标签色保留。
+    """
+    try:
+        colors = style.colors
+        is_light = style.theme.mode == "light"
+        ratio = TREEVIEW_SELECT_MIX_LIGHT if is_light else TREEVIEW_SELECT_MIX_DARK
+        select_bg = _mix_color(colors.inputbg, colors.fg, ratio)
+
+        foreground = [
+            item for item in style.map("Treeview", "foreground")
+            if "selected" not in " ".join(map(str, item[:-1])).split()
+        ]
+        style.map("Treeview", background=[("selected", select_bg)], foreground=foreground)
+
+    except Exception as e:
+        core.log.warn(f"Treeview 选中配色应用失败 {e.__class__.__name__}: {e}", L.WINDOW)
+
+
+def apply_style() -> None:
+    """应用主题相关的自定义样式, 切换主题后需要重新调用"""
+    dpi.apply_style(style)
+    apply_treeview_select_style()
+
 
 def exec_in_main_thread(callobject, *args, **kwds):
     """
@@ -86,7 +129,7 @@ def initial():
     core.log.info("初始化主窗口...", L.WINDOW)
 
     style.theme_use(core.env.configuration.style_theme)
-    dpi.apply_style(style)
+    apply_style()
 
     mainwindow.title(core.env.PROJECT)
     _sw = mainwindow.winfo_screenwidth()

@@ -146,7 +146,7 @@ class ModsManage(object):
 
     def apply_choices_tag_style(self):
         """应用选择列表的状态配色, 跟随当前主题明暗 (切换主题后需要重新调用)"""
-        try: theme_type = core.window.style.theme.type
+        try: theme_type = core.window.style.theme.mode
         except Exception: theme_type = "dark"
 
         table = COLOR_STATE_LIGHT if theme_type == "light" else COLOR_STATE_DARK
